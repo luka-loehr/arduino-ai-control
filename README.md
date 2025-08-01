@@ -4,34 +4,56 @@ An intelligent Arduino control system that allows you to control Arduino devices
 
 ## Features
 
-- **Natural Language Control**: Control your Arduino using plain English commands
-- **Real-time Communication**: Instant feedback and status updates
-- **Advanced LED Control**: 
-  - Basic on/off control
-  - Blinking with custom rates
-  - Fading effects
-  - Morse code display
-  - Custom patterns
-- **Pin Control**: Digital and analog pin manipulation
-- **PWM Control**: Precise PWM output control
-- **Servo Control**: Servo motor positioning
-- **Custom Code Execution**: Execute custom Arduino code dynamically
-- **Web Interface**: Clean, responsive web UI with real-time status indicators
+### 🤖 AI-Powered Control
+- **Natural Language Interface**: Control your Arduino using plain English commands
+- **Google Gemini Integration**: Advanced AI understanding of hardware control requests
+- **Real-time Communication**: WebSocket-based instant feedback and status updates
+
+### 🧙‍♂️ Intelligent Setup Wizard
+- **Guided Setup**: Step-by-step wizard walks you through the entire setup process
+- **API Key Management**: Secure in-browser API key configuration with validation
+- **Arduino Detection**: Automatic detection and selection of connected Arduino boards
+- **One-Click Firmware Upload**: Automated compilation and upload of Arduino firmware
+- **System Testing**: Built-in tests to verify everything is working correctly
+- **Clean Interface**: Disabled controls until setup is complete, preventing confusion
+
+### 💡 Advanced LED Control
+- **Basic Control**: Simple on/off commands
+- **Blinking Effects**: Customizable blink rates (50ms to 5000ms)
+- **Fading Effects**: Smooth fade in/out with adjustable speed
+- **Morse Code**: Display text messages in morse code
+- **Custom Patterns**: Binary patterns for complex light sequences
+- **Real-time Status**: Live LED state visualization
+
+### 📍 Comprehensive Pin Control
+- **Digital I/O**: Read and write digital pins with mode configuration
+- **Analog I/O**: PWM output and analog input reading
+- **Servo Control**: Precise servo motor positioning (0-180 degrees)
+- **Pin Monitoring**: Real-time pin state visualization
+- **Safety Validation**: Input validation and error handling
+
+### 🌐 Modern Web Interface
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Real-time Dashboard**: Live system status and hardware monitoring
+- **Quick Controls**: One-click buttons for common operations
+- **Setup Integration**: Built-in Arduino setup and firmware management
+- **Progress Tracking**: Visual feedback for all operations
 
 ## System Requirements
 
-- Node.js (v14 or higher)
-- Arduino IDE or compatible development environment
-- Arduino board (tested with Arduino Uno)
-- Google Gemini API key
+- **Node.js** (v14 or higher)
+- **Arduino board** (tested with Arduino Uno, Nano, Mega)
+- **USB cable** to connect Arduino to computer
+- **Google Gemini API key** (free from Google AI Studio)
+- **arduino-cli** (automatically installed by setup wizard)
 
 ## Hardware Setup
 
-1. Connect your Arduino to your computer via USB
-2. The Arduino should appear as `/dev/ttyACM0` on Linux systems
-3. Upload the provided Arduino sketch to your board
+1. **Connect your Arduino** to your computer via USB cable
+2. **Ensure drivers are installed** (usually automatic on modern systems)
+3. **Start the application** - the setup wizard will handle the rest!
 
-## Installation
+## Quick Start
 
 1. **Clone the repository**:
    ```bash
@@ -44,28 +66,45 @@ An intelligent Arduino control system that allows you to control Arduino devices
    npm install
    ```
 
-3. **Set up environment variables**:
-   - Copy the `.env.example` file to `.env` in the `arduino-control-app` directory
-   - Add your Google Gemini API key:
-     ```
-     GOOGLE_API_KEY=your_api_key_here
-     ```
-
-4. **Upload Arduino sketch**:
-   - Open `arduino-control-app/arduino-serial/arduino-serial.ino` in Arduino IDE
-   - Upload to your Arduino board
-
-5. **Start the application**:
+3. **Start the application**:
    ```bash
    npm run dev
    ```
 
-6. **Test your setup** (optional):
+4. **Open your browser** and navigate to `http://localhost:3000`
+
+5. **Follow the Setup Wizard**:
+   - The web interface will guide you through the complete setup process
+   - Configure your Google Gemini API key
+   - Detect and connect to your Arduino
+   - Upload firmware automatically
+   - Test the system
+
+That's it! The setup wizard handles everything for you.
+
+## Manual Setup (Advanced Users)
+
+If you prefer manual setup or need to troubleshoot:
+
+1. **Get a Google Gemini API Key**:
+   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create a free API key
+   - Keep it handy for the setup wizard
+
+2. **Prepare your Arduino**:
+   - Connect your Arduino via USB
+   - Ensure it's recognized by your system
+   - The setup wizard will handle firmware upload
+
+3. **Test your setup**:
    ```bash
    ./test-setup.js
    ```
 
-7. **Open your browser** and navigate to `http://localhost:3000`
+4. **Test Arduino functions** (after setup):
+   ```bash
+   node test-arduino-functions.js
+   ```
 
 ## Usage
 

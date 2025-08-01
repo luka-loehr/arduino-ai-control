@@ -1,396 +1,640 @@
 /*
- * Arduino AI Control System - Dynamic Code Executor
+ * Arduino AI Control System - Advanced Firmware
  *
- * This sketch allows an AI system to execute Arduino code in real-time
- * through serial communication. It supports various commands and provides
- * a flexible platform for AI-controlled hardware interactions.
+ * This firmware provides comprehensive control over Arduino hardware
+ * through JSON-based serial communication. It supports real-time
+ * hardware control, status reporting, and advanced effects.
  *
- * Supported Commands:
- * - EXEC:code - Execute single line of Arduino code
- * - MULTI:lines:code - Execute multiple lines of code (separated by |)
- * - LOOP:code - Set code to run continuously in the main loop
- * - RESET - Reset Arduino to default state and clear all custom code
- * - ON/OFF - Legacy LED control commands
+ * Features:
+ * - JSON command protocol
+ * - Real-time pin control and monitoring
+ * - LED effects (blink, fade, morse, patterns)
+ * - Servo motor control
+ * - Sensor reading
+ * - Status reporting
+ * - Error handling and validation
  *
- * Upload this sketch to your Arduino before running the AI control system.
+ * Communication Protocol:
+ * Commands are sent as JSON objects:
+ * {"id":"123","command":"LED_ON","params":{},"timestamp":1234567890}
+ *
+ * Responses are JSON objects:
+ * {"id":"123","success":true,"data":{},"timestamp":1234567890}
+ *
+ * Upload this sketch to your Arduino before using the AI control system.
  */
 
 #include <Arduino.h>
+#include <Servo.h>
 
-String command = "";
-bool commandComplete = false;
-String loopCode = "";
-bool hasLoopCode = false;
+// System state
+struct SystemState {
+  bool ledState;
+  int pinModes[20];
+  int digitalValues[20];
+  int analogValues[6];
+  bool effectsActive[5]; // blink, fade, morse, pattern, rainbow
+  unsigned long lastHeartbeat;
+  String currentEffect;
+} systemState;
 
-// Variables accessible to dynamic code
-int ledPin = LED_BUILTIN;
-int pins[20];
-int analogPins[6];
-unsigned long timers[10];
-int counters[10];
-bool flags[10];
-int pwmValue = 0;
-int fadeAmount = 5;
-float sensorValue = 0;
+// Command processing
+String inputBuffer = "";
+bool commandReady = false;
 
-// Rainbow effect variables
-int redPin = 9;
-int greenPin = 10;
-int bluePin = 11;
-int hue = 0;
+// Effect control
+unsigned long effectTimers[5] = {0, 0, 0, 0, 0};
+int effectCounters[5] = {0, 0, 0, 0, 0};
+String morseText = "";
+String patternString = "";
+int blinkRate = 500;
+int fadeSpeed = 5;
+int fadeValue = 0;
+int fadeDirection = 1;
+
+// Servo objects
+Servo servos[14];
+bool servoAttached[14] = {false};
+
+// Morse code lookup table
+const char* morseCode[] = {
+  ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---",
+  "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-",
+  "..-", "...-", ".--", "-..-", "-.--", "--.."
+};
 
 void setup() {
   Serial.begin(9600);
-  pinMode(LED_BUILTIN, OUTPUT);
-  
-  // Initialize arrays
-  for (int i = 0; i < 20; i++) pins[i] = 0;
-  for (int i = 0; i < 6; i++) analogPins[i] = 0;
-  for (int i = 0; i < 10; i++) {
-    timers[i] = 0;
-    counters[i] = 0;
-    flags[i] = false;
+
+  // Initialize system state
+  systemState.ledState = false;
+  systemState.lastHeartbeat = millis();
+  systemState.currentEffect = "none";
+
+  // Initialize pin arrays
+  for (int i = 0; i < 20; i++) {
+    systemState.pinModes[i] = INPUT;
+    systemState.digitalValues[i] = LOW;
   }
-  
-  Serial.println("Arduino Dynamic Executor Ready");
-  Serial.println("Variables: ledPin, pins[20], analogPins[6], timers[10], counters[10], flags[10]");
-  Serial.println("Functions: setRGB(r,g,b), rainbow(), fade(pin,speed), blink(pin,rate)");
+
+  for (int i = 0; i < 6; i++) {
+    systemState.analogValues[i] = 0;
+  }
+
+  for (int i = 0; i < 5; i++) {
+    systemState.effectsActive[i] = false;
+  }
+
+  // Set up built-in LED
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // Send ready message
+  sendResponse("", true, "Arduino AI Control System Ready", "status");
+
+  // Send initial status
+  delay(1000);
+  sendStatusUpdate();
 }
 
 void loop() {
-  // Read serial commands
+  // Read serial input
+  readSerialInput();
+
+  // Process commands
+  if (commandReady) {
+    processCommand(inputBuffer);
+    inputBuffer = "";
+    commandReady = false;
+  }
+
+  // Update effects
+  updateEffects();
+
+  // Send periodic status updates
+  if (millis() - systemState.lastHeartbeat > 5000) {
+    sendStatusUpdate();
+    systemState.lastHeartbeat = millis();
+  }
+
+  // Small delay to prevent overwhelming the serial
+  delay(1);
+}
+
+// Read serial input and build command buffer
+void readSerialInput() {
   while (Serial.available()) {
     char inChar = (char)Serial.read();
+
     if (inChar == '\n') {
-      commandComplete = true;
-    } else {
-      command += inChar;
+      commandReady = true;
+      return;
+    } else if (inChar != '\r') {
+      inputBuffer += inChar;
+    }
+
+    // Prevent buffer overflow
+    if (inputBuffer.length() > 500) {
+      inputBuffer = "";
+      sendResponse("", false, "Command too long", "error");
+      return;
     }
   }
-
-  // Process complete command
-  if (commandComplete) {
-    processCommand(command);
-    command = "";
-    commandComplete = false;
-  }
-
-  // Execute loop code if set
-  if (hasLoopCode) {
-    executeCode(loopCode);
-  }
-  
-  // Always available functions
-  updateEffects();
 }
 
-void processCommand(String cmd) {
-  cmd.trim();
-  
-  if (cmd.startsWith("EXEC:")) {
-    String code = cmd.substring(5);
-    executeCode(code);
-    Serial.println("Executed: " + code);
+// Process incoming JSON commands
+void processCommand(String jsonCmd) {
+  // Parse JSON command
+  String commandId = "";
+  String command = "";
+
+  // Simple JSON parsing (basic implementation)
+  int idStart = jsonCmd.indexOf("\"id\":\"") + 6;
+  int idEnd = jsonCmd.indexOf("\"", idStart);
+  if (idStart > 5 && idEnd > idStart) {
+    commandId = jsonCmd.substring(idStart, idEnd);
   }
-  else if (cmd.startsWith("MULTI:")) {
-    int colonPos = cmd.indexOf(':', 6);
-    if (colonPos > 0) {
-      int lines = cmd.substring(6, colonPos).toInt();
-      String code = cmd.substring(colonPos + 1);
-      // Replace | with newlines for multi-line code
-      code.replace("|", "\n");
-      executeCode(code);
-      Serial.println("Executed " + String(lines) + " lines");
-    }
+
+  int cmdStart = jsonCmd.indexOf("\"command\":\"") + 11;
+  int cmdEnd = jsonCmd.indexOf("\"", cmdStart);
+  if (cmdStart > 10 && cmdEnd > cmdStart) {
+    command = jsonCmd.substring(cmdStart, cmdEnd);
   }
-  else if (cmd.startsWith("LOOP:")) {
-    loopCode = cmd.substring(5);
-    hasLoopCode = true;
-    Serial.println("Loop code set: " + loopCode);
+
+  // Execute command
+  bool success = false;
+  String message = "";
+  String dataType = "result";
+
+  if (command == "PING") {
+    success = true;
+    message = "Pong";
   }
-  else if (cmd == "RESET") {
-    loopCode = "";
-    hasLoopCode = false;
-    // Reset all pins
-    for (int i = 0; i < 20; i++) {
-      pinMode(i, INPUT);
-      digitalWrite(i, LOW);
-    }
-    Serial.println("Reset complete");
+  else if (command == "LED_ON") {
+    success = executeCommand_LED_ON();
+    message = success ? "LED turned on" : "Failed to turn on LED";
+  }
+  else if (command == "LED_OFF") {
+    success = executeCommand_LED_OFF();
+    message = success ? "LED turned off" : "Failed to turn off LED";
+  }
+  else if (command == "LED_BLINK") {
+    int rate = extractIntParam(jsonCmd, "rate", 500);
+    success = executeCommand_LED_BLINK(rate);
+    message = success ? "LED blinking started" : "Failed to start blinking";
+  }
+  else if (command == "LED_FADE") {
+    int speed = extractIntParam(jsonCmd, "speed", 5);
+    success = executeCommand_LED_FADE(speed);
+    message = success ? "LED fading started" : "Failed to start fading";
+  }
+  else if (command == "LED_MORSE") {
+    String text = extractStringParam(jsonCmd, "text", "");
+    success = executeCommand_LED_MORSE(text);
+    message = success ? "Morse code started" : "Failed to start morse code";
+  }
+  else if (command == "LED_PATTERN") {
+    String pattern = extractStringParam(jsonCmd, "pattern", "");
+    success = executeCommand_LED_PATTERN(pattern);
+    message = success ? "Pattern started" : "Failed to start pattern";
+  }
+  else if (command == "PIN_MODE") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    String mode = extractStringParam(jsonCmd, "mode", "");
+    success = executeCommand_PIN_MODE(pin, mode);
+    message = success ? "Pin mode set" : "Failed to set pin mode";
+  }
+  else if (command == "DIGITAL_WRITE") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    int value = extractIntParam(jsonCmd, "value", -1);
+    success = executeCommand_DIGITAL_WRITE(pin, value);
+    message = success ? "Digital write completed" : "Failed to write digital value";
+  }
+  else if (command == "DIGITAL_READ") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    int value = executeCommand_DIGITAL_READ(pin);
+    success = (value >= 0);
+    message = success ? String(value) : "Failed to read digital value";
+    dataType = "reading";
+  }
+  else if (command == "ANALOG_WRITE") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    int value = extractIntParam(jsonCmd, "value", -1);
+    success = executeCommand_ANALOG_WRITE(pin, value);
+    message = success ? "Analog write completed" : "Failed to write analog value";
+  }
+  else if (command == "ANALOG_READ") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    int value = executeCommand_ANALOG_READ(pin);
+    success = (value >= 0);
+    message = success ? String(value) : "Failed to read analog value";
+    dataType = "reading";
+  }
+  else if (command == "SERVO_WRITE") {
+    int pin = extractIntParam(jsonCmd, "pin", -1);
+    int angle = extractIntParam(jsonCmd, "angle", -1);
+    success = executeCommand_SERVO_WRITE(pin, angle);
+    message = success ? "Servo positioned" : "Failed to position servo";
+  }
+  else if (command == "STOP_EFFECTS") {
+    success = executeCommand_STOP_EFFECTS();
+    message = "All effects stopped";
+  }
+  else if (command == "RESET") {
+    success = executeCommand_RESET();
+    message = "System reset completed";
+  }
+  else if (command == "STATUS") {
+    success = true;
+    message = "Status update";
+    dataType = "status";
+    sendStatusUpdate();
+    return; // Status update sends its own response
   }
   else {
-    // Legacy commands for compatibility
-    if (cmd == "ON" || cmd == "1") {
-      digitalWrite(LED_BUILTIN, HIGH);
-      Serial.println("LED ON");
-    }
-    else if (cmd == "OFF" || cmd == "0") {
-      digitalWrite(LED_BUILTIN, LOW);
-      Serial.println("LED OFF");
-    }
+    success = false;
+    message = "Unknown command: " + command;
   }
+
+  // Send response
+  sendResponse(commandId, success, message, dataType);
 }
 
-void executeCode(String code) {
-  // Basic code execution - parse and execute common Arduino commands
-  code.trim();
-  
-  // pinMode
-  if (code.startsWith("pinMode(")) {
-    int start = 8;
-    int comma = code.indexOf(',', start);
-    int end = code.indexOf(')', comma);
-    if (comma > 0 && end > 0) {
-      int pin = code.substring(start, comma).toInt();
-      String mode = code.substring(comma + 1, end);
-      mode.trim();
-      if (mode == "OUTPUT") pinMode(pin, OUTPUT);
-      else if (mode == "INPUT") pinMode(pin, INPUT);
-      else if (mode == "INPUT_PULLUP") pinMode(pin, INPUT_PULLUP);
-    }
+// Parameter extraction functions
+int extractIntParam(String json, String paramName, int defaultValue) {
+  String searchStr = "\"" + paramName + "\":";
+  int start = json.indexOf(searchStr);
+  if (start == -1) return defaultValue;
+
+  start += searchStr.length();
+  int end = start;
+
+  // Find end of number
+  while (end < json.length() && (isDigit(json.charAt(end)) || json.charAt(end) == '-')) {
+    end++;
   }
-  // digitalWrite
-  else if (code.startsWith("digitalWrite(")) {
-    int start = 13;
-    int comma = code.indexOf(',', start);
-    int end = code.indexOf(')', comma);
-    if (comma > 0 && end > 0) {
-      int pin = code.substring(start, comma).toInt();
-      String value = code.substring(comma + 1, end);
-      value.trim();
-      digitalWrite(pin, value == "HIGH" || value == "1" ? HIGH : LOW);
-    }
+
+  if (end > start) {
+    return json.substring(start, end).toInt();
   }
-  // analogWrite
-  else if (code.startsWith("analogWrite(")) {
-    int start = 12;
-    int comma = code.indexOf(',', start);
-    int end = code.indexOf(')', comma);
-    if (comma > 0 && end > 0) {
-      int pin = code.substring(start, comma).toInt();
-      int value = code.substring(comma + 1, end).toInt();
-      analogWrite(pin, value);
-    }
-  }
-  // delay
-  else if (code.startsWith("delay(")) {
-    int start = 6;
-    int end = code.indexOf(')', start);
-    if (end > 0) {
-      int ms = code.substring(start, end).toInt();
-      delay(ms);
-    }
-  }
-  // digitalRead
-  else if (code.startsWith("pins[") && code.indexOf("]=digitalRead(") > 0) {
-    int arrayStart = 5;
-    int arrayEnd = code.indexOf(']', arrayStart);
-    int readStart = code.indexOf('(') + 1;
-    int readEnd = code.indexOf(')', readStart);
-    if (arrayEnd > 0 && readEnd > 0) {
-      int index = code.substring(arrayStart, arrayEnd).toInt();
-      int pin = code.substring(readStart, readEnd).toInt();
-      pins[index] = digitalRead(pin);
-    }
-  }
-  // analogRead
-  else if (code.startsWith("analogPins[") && code.indexOf("]=analogRead(") > 0) {
-    int arrayStart = 11;
-    int arrayEnd = code.indexOf(']', arrayStart);
-    int readStart = code.indexOf('(') + 1;
-    int readEnd = code.indexOf(')', readStart);
-    if (arrayEnd > 0 && readEnd > 0) {
-      int index = code.substring(arrayStart, arrayEnd).toInt();
-      int pin = code.substring(readStart, readEnd).toInt();
-      analogPins[index] = analogRead(pin);
-    }
-  }
-  // Timer operations
-  else if (code.startsWith("timers[") && code.indexOf("]=millis()") > 0) {
-    int arrayStart = 7;
-    int arrayEnd = code.indexOf(']', arrayStart);
-    if (arrayEnd > 0) {
-      int index = code.substring(arrayStart, arrayEnd).toInt();
-      timers[index] = millis();
-    }
-  }
-  // Counter operations
-  else if (code.startsWith("counters[") && code.indexOf("]++") > 0) {
-    int arrayStart = 9;
-    int arrayEnd = code.indexOf(']', arrayStart);
-    if (arrayEnd > 0) {
-      int index = code.substring(arrayStart, arrayEnd).toInt();
-      counters[index]++;
-    }
-  }
-  // Flag operations
-  else if (code.startsWith("flags[") && code.indexOf("]=") > 0) {
-    int arrayStart = 6;
-    int arrayEnd = code.indexOf(']', arrayStart);
-    int eqPos = code.indexOf('=', arrayEnd);
-    if (arrayEnd > 0 && eqPos > 0) {
-      int index = code.substring(arrayStart, arrayEnd).toInt();
-      String value = code.substring(eqPos + 1);
-      value.trim();
-      flags[index] = (value == "true" || value == "1");
-    }
-  }
-  // Custom functions
-  else if (code.startsWith("setRGB(")) {
-    int start = 7;
-    int comma1 = code.indexOf(',', start);
-    int comma2 = code.indexOf(',', comma1 + 1);
-    int end = code.indexOf(')', comma2);
-    if (comma1 > 0 && comma2 > 0 && end > 0) {
-      int r = code.substring(start, comma1).toInt();
-      int g = code.substring(comma1 + 1, comma2).toInt();
-      int b = code.substring(comma2 + 1, end).toInt();
-      setRGB(r, g, b);
-    }
-  }
-  else if (code == "rainbow()") {
-    rainbow();
-  }
-  else if (code.startsWith("fade(")) {
-    int start = 5;
-    int comma = code.indexOf(',', start);
-    int end = code.indexOf(')', comma);
-    if (comma > 0 && end > 0) {
-      int pin = code.substring(start, comma).toInt();
-      int speed = code.substring(comma + 1, end).toInt();
-      fade(pin, speed);
-    }
-  }
-  else if (code.startsWith("blink(")) {
-    int start = 6;
-    int comma = code.indexOf(',', start);
-    int end = code.indexOf(')', comma);
-    if (comma > 0 && end > 0) {
-      int pin = code.substring(start, comma).toInt();
-      int rate = code.substring(comma + 1, end).toInt();
-      blink(pin, rate);
-    }
-  }
-  // Conditional execution
-  else if (code.startsWith("if(")) {
-    int condStart = 3;
-    int condEnd = code.indexOf(')', condStart);
-    int thenPos = code.indexOf("then:", condEnd);
-    if (condEnd > 0 && thenPos > 0) {
-      String condition = code.substring(condStart, condEnd);
-      String thenCode = code.substring(thenPos + 5);
-      if (evaluateCondition(condition)) {
-        executeCode(thenCode);
-      }
-    }
-  }
+
+  return defaultValue;
 }
 
-bool evaluateCondition(String cond) {
-  cond.trim();
-  
-  // Simple pin read conditions
-  if (cond.startsWith("digitalRead(") && cond.indexOf(")==HIGH") > 0) {
-    int start = 12;
-    int end = cond.indexOf(')', start);
-    if (end > 0) {
-      int pin = cond.substring(start, end).toInt();
-      return digitalRead(pin) == HIGH;
+String extractStringParam(String json, String paramName, String defaultValue) {
+  String searchStr = "\"" + paramName + "\":\"";
+  int start = json.indexOf(searchStr);
+  if (start == -1) return defaultValue;
+
+  start += searchStr.length();
+  int end = json.indexOf("\"", start);
+
+  if (end > start) {
+    return json.substring(start, end);
+  }
+
+  return defaultValue;
+}
+
+// Send JSON response
+void sendResponse(String commandId, bool success, String message, String type) {
+  Serial.print("{\"id\":\"");
+  Serial.print(commandId);
+  Serial.print("\",\"success\":");
+  Serial.print(success ? "true" : "false");
+  Serial.print(",\"message\":\"");
+  Serial.print(message);
+  Serial.print("\",\"type\":\"");
+  Serial.print(type);
+  Serial.print("\",\"timestamp\":");
+  Serial.print(millis());
+  Serial.println("}");
+}
+
+// Send status update
+void sendStatusUpdate() {
+  Serial.print("{\"type\":\"status\",\"data\":{");
+  Serial.print("\"led\":");
+  Serial.print(systemState.ledState ? "true" : "false");
+  Serial.print(",\"pins\":{");
+
+  bool first = true;
+  for (int i = 0; i < 20; i++) {
+    if (systemState.pinModes[i] != INPUT || systemState.digitalValues[i] != LOW) {
+      if (!first) Serial.print(",");
+      Serial.print("\"");
+      Serial.print(i);
+      Serial.print("\":{\"mode\":\"");
+      Serial.print(systemState.pinModes[i] == OUTPUT ? "OUTPUT" : "INPUT");
+      Serial.print("\",\"digitalValue\":");
+      Serial.print(systemState.digitalValues[i]);
+      Serial.print("}");
+      first = false;
     }
   }
-  else if (cond.startsWith("digitalRead(") && cond.indexOf(")==LOW") > 0) {
-    int start = 12;
-    int end = cond.indexOf(')', start);
-    if (end > 0) {
-      int pin = cond.substring(start, end).toInt();
-      return digitalRead(pin) == LOW;
+
+  Serial.print("},\"effects\":{");
+  Serial.print("\"blinking\":");
+  Serial.print(systemState.effectsActive[0] ? "true" : "false");
+  Serial.print(",\"fading\":");
+  Serial.print(systemState.effectsActive[1] ? "true" : "false");
+  Serial.print(",\"morse\":");
+  Serial.print(systemState.effectsActive[2] ? "true" : "false");
+  Serial.print(",\"pattern\":");
+  Serial.print(systemState.effectsActive[3] ? "true" : "false");
+  Serial.print(",\"rainbow\":");
+  Serial.print(systemState.effectsActive[4] ? "true" : "false");
+  Serial.print("},\"currentEffect\":\"");
+  Serial.print(systemState.currentEffect);
+  Serial.print("\",\"timestamp\":");
+  Serial.print(millis());
+  Serial.println("}}");
+}
+
+// Command execution functions
+bool executeCommand_LED_ON() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  systemState.ledState = true;
+  systemState.currentEffect = "on";
+  stopAllEffects();
+  return true;
+}
+
+bool executeCommand_LED_OFF() {
+  digitalWrite(LED_BUILTIN, LOW);
+  systemState.ledState = false;
+  systemState.currentEffect = "off";
+  stopAllEffects();
+  return true;
+}
+
+bool executeCommand_LED_BLINK(int rate) {
+  if (rate < 50 || rate > 5000) return false;
+
+  blinkRate = rate;
+  systemState.effectsActive[0] = true;
+  systemState.currentEffect = "blink";
+  effectTimers[0] = millis();
+  return true;
+}
+
+bool executeCommand_LED_FADE(int speed) {
+  if (speed < 1 || speed > 10) return false;
+
+  fadeSpeed = speed;
+  systemState.effectsActive[1] = true;
+  systemState.currentEffect = "fade";
+  effectTimers[1] = millis();
+  return true;
+}
+
+bool executeCommand_LED_MORSE(String text) {
+  if (text.length() == 0 || text.length() > 50) return false;
+
+  morseText = text;
+  morseText.toUpperCase();
+  systemState.effectsActive[2] = true;
+  systemState.currentEffect = "morse";
+  effectTimers[2] = millis();
+  effectCounters[2] = 0; // Character index
+  return true;
+}
+
+bool executeCommand_LED_PATTERN(String pattern) {
+  if (pattern.length() == 0 || pattern.length() > 100) return false;
+
+  // Validate pattern (only 0s and 1s)
+  for (int i = 0; i < pattern.length(); i++) {
+    if (pattern.charAt(i) != '0' && pattern.charAt(i) != '1') {
+      return false;
     }
   }
-  // Analog comparisons
-  else if (cond.startsWith("analogRead(") && cond.indexOf(")>") > 0) {
-    int start = 11;
-    int end = cond.indexOf(')', start);
-    int gtPos = cond.indexOf('>', end);
-    if (end > 0 && gtPos > 0) {
-      int pin = cond.substring(start, end).toInt();
-      int threshold = cond.substring(gtPos + 1).toInt();
-      return analogRead(pin) > threshold;
+
+  patternString = pattern;
+  systemState.effectsActive[3] = true;
+  systemState.currentEffect = "pattern";
+  effectTimers[3] = millis();
+  effectCounters[3] = 0; // Pattern index
+  return true;
+}
+
+bool executeCommand_PIN_MODE(int pin, String mode) {
+  if (pin < 0 || pin > 19) return false;
+
+  if (mode == "OUTPUT") {
+    pinMode(pin, OUTPUT);
+    systemState.pinModes[pin] = OUTPUT;
+  } else if (mode == "INPUT") {
+    pinMode(pin, INPUT);
+    systemState.pinModes[pin] = INPUT;
+  } else if (mode == "INPUT_PULLUP") {
+    pinMode(pin, INPUT_PULLUP);
+    systemState.pinModes[pin] = INPUT_PULLUP;
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
+bool executeCommand_DIGITAL_WRITE(int pin, int value) {
+  if (pin < 0 || pin > 19 || (value != 0 && value != 1)) return false;
+
+  digitalWrite(pin, value ? HIGH : LOW);
+  systemState.digitalValues[pin] = value;
+  return true;
+}
+
+int executeCommand_DIGITAL_READ(int pin) {
+  if (pin < 0 || pin > 19) return -1;
+
+  int value = digitalRead(pin);
+  systemState.digitalValues[pin] = value;
+  return value;
+}
+
+bool executeCommand_ANALOG_WRITE(int pin, int value) {
+  // Check if pin supports PWM
+  if ((pin != 3 && pin != 5 && pin != 6 && pin != 9 && pin != 10 && pin != 11) ||
+      value < 0 || value > 255) {
+    return false;
+  }
+
+  analogWrite(pin, value);
+  return true;
+}
+
+int executeCommand_ANALOG_READ(int pin) {
+  if (pin < 0 || pin > 5) return -1;
+
+  int value = analogRead(pin);
+  systemState.analogValues[pin] = value;
+  return value;
+}
+
+bool executeCommand_SERVO_WRITE(int pin, int angle) {
+  if (pin < 2 || pin > 13 || angle < 0 || angle > 180) return false;
+
+  if (!servoAttached[pin]) {
+    servos[pin].attach(pin);
+    servoAttached[pin] = true;
+  }
+
+  servos[pin].write(angle);
+  return true;
+}
+
+bool executeCommand_STOP_EFFECTS() {
+  stopAllEffects();
+  return true;
+}
+
+bool executeCommand_RESET() {
+  // Stop all effects
+  stopAllEffects();
+
+  // Reset LED
+  digitalWrite(LED_BUILTIN, LOW);
+  systemState.ledState = false;
+
+  // Reset all pins to INPUT
+  for (int i = 0; i < 20; i++) {
+    pinMode(i, INPUT);
+    systemState.pinModes[i] = INPUT;
+    systemState.digitalValues[i] = LOW;
+  }
+
+  // Detach servos
+  for (int i = 0; i < 14; i++) {
+    if (servoAttached[i]) {
+      servos[i].detach();
+      servoAttached[i] = false;
     }
   }
-  // Timer conditions
-  else if (cond.startsWith("millis()-timers[") && cond.indexOf("]>") > 0) {
-    int start = 16;
-    int end = cond.indexOf(']', start);
-    int gtPos = cond.indexOf('>', end);
-    if (end > 0 && gtPos > 0) {
-      int index = cond.substring(start, end).toInt();
-      unsigned long duration = cond.substring(gtPos + 1).toInt();
-      return (millis() - timers[index]) > duration;
-    }
-  }
-  // Flag conditions
-  else if (cond.startsWith("flags[") && cond.indexOf("]==true") > 0) {
-    int start = 6;
-    int end = cond.indexOf(']', start);
-    if (end > 0) {
-      int index = cond.substring(start, end).toInt();
-      return flags[index];
-    }
-  }
-  
-  return false;
+
+  systemState.currentEffect = "none";
+  return true;
 }
 
 // Helper functions
-void setRGB(int r, int g, int b) {
-  analogWrite(redPin, r);
-  analogWrite(greenPin, g);
-  analogWrite(bluePin, b);
-}
-
-void rainbow() {
-  // Convert HSV to RGB
-  hue = (hue + 1) % 360;
-  int h = hue / 60;
-  int f = (hue % 60) * 255 / 60;
-  int q = 255 - f;
-  
-  switch(h) {
-    case 0: setRGB(255, f, 0); break;
-    case 1: setRGB(q, 255, 0); break;
-    case 2: setRGB(0, 255, f); break;
-    case 3: setRGB(0, q, 255); break;
-    case 4: setRGB(f, 0, 255); break;
-    case 5: setRGB(255, 0, q); break;
+void stopAllEffects() {
+  for (int i = 0; i < 5; i++) {
+    systemState.effectsActive[i] = false;
+    effectTimers[i] = 0;
+    effectCounters[i] = 0;
   }
 }
 
-void fade(int pin, int speed) {
-  pwmValue = pwmValue + (fadeAmount * speed);
-  if (pwmValue <= 0 || pwmValue >= 255) {
-    fadeAmount = -fadeAmount;
-  }
-  pwmValue = constrain(pwmValue, 0, 255);
-  analogWrite(pin, pwmValue);
-}
-
-void blink(int pin, int rate) {
-  static unsigned long lastBlink = 0;
-  static bool blinkState = false;
-  
-  if (millis() - lastBlink >= rate) {
-    blinkState = !blinkState;
-    digitalWrite(pin, blinkState ? HIGH : LOW);
-    lastBlink = millis();
-  }
-}
-
+// Update all active effects
 void updateEffects() {
-  // This runs every loop to maintain ongoing effects
-  static unsigned long lastUpdate = 0;
-  
-  if (millis() - lastUpdate >= 10) {
-    // Update any ongoing effects here
-    lastUpdate = millis();
+  unsigned long currentTime = millis();
+
+  // Blink effect
+  if (systemState.effectsActive[0]) {
+    if (currentTime - effectTimers[0] >= blinkRate) {
+      systemState.ledState = !systemState.ledState;
+      digitalWrite(LED_BUILTIN, systemState.ledState ? HIGH : LOW);
+      effectTimers[0] = currentTime;
+    }
+  }
+
+  // Fade effect
+  if (systemState.effectsActive[1]) {
+    if (currentTime - effectTimers[1] >= (100 / fadeSpeed)) {
+      fadeValue += fadeDirection * fadeSpeed;
+      if (fadeValue <= 0) {
+        fadeValue = 0;
+        fadeDirection = 1;
+      } else if (fadeValue >= 255) {
+        fadeValue = 255;
+        fadeDirection = -1;
+      }
+      analogWrite(LED_BUILTIN, fadeValue);
+      effectTimers[1] = currentTime;
+    }
+  }
+
+  // Morse code effect
+  if (systemState.effectsActive[2]) {
+    updateMorseEffect(currentTime);
+  }
+
+  // Pattern effect
+  if (systemState.effectsActive[3]) {
+    if (currentTime - effectTimers[3] >= 100) { // 100ms per pattern bit
+      if (effectCounters[3] < patternString.length()) {
+        bool ledState = (patternString.charAt(effectCounters[3]) == '1');
+        digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+        systemState.ledState = ledState;
+        effectCounters[3]++;
+      } else {
+        effectCounters[3] = 0; // Repeat pattern
+      }
+      effectTimers[3] = currentTime;
+    }
+  }
+}
+
+// Morse code effect implementation
+void updateMorseEffect(unsigned long currentTime) {
+  static int charIndex = 0;
+  static int morseIndex = 0;
+  static bool inSpace = false;
+  static int spaceType = 0; // 0=none, 1=letter, 2=word
+
+  if (currentTime - effectTimers[2] >= 100) { // 100ms timing unit
+    if (inSpace) {
+      digitalWrite(LED_BUILTIN, LOW);
+      systemState.ledState = false;
+
+      if (spaceType == 1 && currentTime - effectTimers[2] >= 300) { // Letter space
+        inSpace = false;
+        charIndex++;
+        morseIndex = 0;
+      } else if (spaceType == 2 && currentTime - effectTimers[2] >= 700) { // Word space
+        inSpace = false;
+        charIndex++;
+        morseIndex = 0;
+      }
+    } else {
+      if (charIndex >= morseText.length()) {
+        charIndex = 0; // Repeat message
+        morseIndex = 0;
+      }
+
+      char currentChar = morseText.charAt(charIndex);
+
+      if (currentChar == ' ') {
+        inSpace = true;
+        spaceType = 2; // Word space
+        effectTimers[2] = currentTime;
+      } else if (currentChar >= 'A' && currentChar <= 'Z') {
+        String morse = morseCode[currentChar - 'A'];
+
+        if (morseIndex < morse.length()) {
+          digitalWrite(LED_BUILTIN, HIGH);
+          systemState.ledState = true;
+
+          // Dot = 100ms, Dash = 300ms
+          int duration = (morse.charAt(morseIndex) == '.') ? 100 : 300;
+
+          if (currentTime - effectTimers[2] >= duration) {
+            morseIndex++;
+            if (morseIndex >= morse.length()) {
+              inSpace = true;
+              spaceType = 1; // Letter space
+            }
+            effectTimers[2] = currentTime;
+          }
+        }
+      } else {
+        // Skip unknown characters
+        charIndex++;
+      }
+    }
+
+    if (!inSpace) {
+      effectTimers[2] = currentTime;
+    }
   }
 }

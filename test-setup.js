@@ -95,6 +95,26 @@ if (fs.existsSync(envPath)) {
     console.log('   ⚠️  .env file not found. Copy from .env.example and configure');
 }
 
+// Test 5.1: Check upload script
+console.log('\n5.1. Checking upload script...');
+const uploadScriptPath = 'arduino-control-app/scripts/upload-firmware.sh';
+if (fs.existsSync(uploadScriptPath)) {
+    console.log('   ✅ Upload script exists');
+    try {
+        const stats = fs.statSync(uploadScriptPath);
+        if (stats.mode & parseInt('111', 8)) {
+            console.log('   ✅ Upload script is executable');
+        } else {
+            console.log('   ⚠️  Upload script is not executable');
+        }
+    } catch (error) {
+        console.log('   ⚠️  Could not check script permissions');
+    }
+} else {
+    console.log('   ❌ Upload script missing');
+    allTestsPassed = false;
+}
+
 // Test 6: Check for Arduino devices (Linux only)
 console.log('\n6. Checking for Arduino devices...');
 if (process.platform === 'linux') {

@@ -9,11 +9,21 @@
     "start": "cd arduino-control-app && npm start",
     "test-setup": "node test-setup.js"
   },
-  "keywords": ["arduino", "ai", "iot", "gemini", "automation", "serial"],
+  "keywords": [
+    "arduino",
+    "ai",
+    "iot",
+    "gemini",
+    "automation",
+    "serial"
+  ],
   "author": "",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "https://github.com/luka-loehr/arduino-ai-control.git"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
   }
 }
