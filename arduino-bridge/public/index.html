@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino AI Bridge - Local Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid #ddd;
+        }
+        
+        .status-card.connected {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .status-card.disconnected {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .status-card h3 {
+            margin-bottom: 1rem;
+            color: #1e3c72;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-value {
+            font-weight: bold;
+        }
+        
+        .transparency-section {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .transparency-section h3 {
+            color: #1565c0;
+            margin-bottom: 1rem;
+        }
+        
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .link-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+            transition: all 0.2s ease;
+        }
+        
+        .link-card:hover {
+            background: #f3e5f5;
+            border-color: #1565c0;
+        }
+        
+        .link-card strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .refresh-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .refresh-btn:hover {
+            background: #1e3c72;
+        }
+        
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.25rem;
+            color: #666;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-indicator.connected {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+        
+        .status-indicator.disconnected {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Arduino AI Bridge</h1>
+            <p>Local Hardware Interface - Running on Your Computer</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-grid">
+                <div class="status-card" id="bridgeStatus">
+                    <h3>🌉 Bridge Status</h3>
+                    <div class="status-item">
+                        <span>Status:</span>
+                        <span class="status-value" id="bridgeStatusValue">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Version:</span>
+                        <span class="status-value" id="bridgeVersion">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Uptime:</span>
+                        <span class="status-value" id="bridgeUptime">-</span>
+                    </div>
+                </div>
+                
+                <div class="status-card" id="arduinoStatus">
+                    <h3>🔌 Arduino Connection</h3>
+                    <div class="status-item">
+                        <span>Connected:</span>
+                        <span class="status-value" id="arduinoConnected">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Port:</span>
+                        <span class="status-value" id="arduinoPort">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Firmware:</span>
+                        <span class="status-value" id="arduinoFirmware">-</span>
+                    </div>
+                </div>
+                
+                <div class="status-card" id="cloudStatus">
+                    <h3>☁️ Cloud Connection</h3>
+                    <div class="status-item">
+                        <span>Connected:</span>
+                        <span class="status-value" id="cloudConnected">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Commands:</span>
+                        <span class="status-value" id="commandsProcessed">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Last Activity:</span>
+                        <span class="status-value" id="lastActivity">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="refresh-btn" onclick="refreshStatus()">🔄 Refresh Status</button>
+            
+            <div class="transparency-section">
+                <h3>🔍 Full Transparency & Security</h3>
+                <p>This bridge runs locally on your computer and provides secure communication between your Arduino and the cloud AI service. All code is open source and auditable.</p>
+                
+                <div class="link-grid">
+                    <a href="https://github.com/luka-loehr/arduino-ai-control" class="link-card" target="_blank">
+                        <strong>📖 Source Code</strong>
+                        <small>View complete codebase on GitHub</small>
+                    </a>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/tree/main/arduino-bridge" class="link-card" target="_blank">
+                        <strong>🌉 Bridge Code</strong>
+                        <small>Review this bridge's source code</small>
+                    </a>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/blob/main/arduino-bridge/README.md" class="link-card" target="_blank">
+                        <strong>🔒 Security Info</strong>
+                        <small>Read about privacy and security</small>
+                    </a>
+                    <a href="https://arduino-control.ai" class="link-card" target="_blank">
+                        <strong>🌐 Web Interface</strong>
+                        <small>Open the cloud control interface</small>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">Bridge status page loaded</div>
+                <div class="log-entry">Fetching current status...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let statusData = null;
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/status');
+                statusData = await response.json();
+                updateUI();
+                addLogEntry('Status updated successfully');
+            } catch (error) {
+                addLogEntry('Failed to fetch status: ' + error.message);
+            }
+        }
+        
+        function updateUI() {
+            if (!statusData) return;
+            
+            // Bridge status
+            document.getElementById('bridgeStatusValue').textContent = statusData.bridge.status;
+            document.getElementById('bridgeVersion').textContent = statusData.bridge.version;
+            
+            const startTime = new Date(statusData.bridge.startTime);
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('bridgeUptime').textContent = formatUptime(uptime);
+            
+            // Arduino status
+            const arduinoCard = document.getElementById('arduinoStatus');
+            if (statusData.arduino.connected) {
+                arduinoCard.className = 'status-card connected';
+                document.getElementById('arduinoConnected').innerHTML = '<span class="status-indicator connected"></span>Yes';
+                document.getElementById('arduinoPort').textContent = statusData.arduino.port || '-';
+                document.getElementById('arduinoFirmware').textContent = statusData.arduino.firmwareVersion || 'Unknown';
+            } else {
+                arduinoCard.className = 'status-card disconnected';
+                document.getElementById('arduinoConnected').innerHTML = '<span class="status-indicator disconnected"></span>No';
+                document.getElementById('arduinoPort').textContent = '-';
+                document.getElementById('arduinoFirmware').textContent = '-';
+            }
+            
+            // Cloud status
+            const cloudCard = document.getElementById('cloudStatus');
+            if (statusData.cloud.connected) {
+                cloudCard.className = 'status-card connected';
+                document.getElementById('cloudConnected').innerHTML = '<span class="status-indicator connected"></span>Yes';
+            } else {
+                cloudCard.className = 'status-card disconnected';
+                document.getElementById('cloudConnected').innerHTML = '<span class="status-indicator disconnected"></span>No';
+            }
+            
+            document.getElementById('commandsProcessed').textContent = statusData.stats.commandsProcessed || 0;
+            
+            const lastActivity = statusData.stats.lastActivity;
+            if (lastActivity) {
+                const time = new Date(lastActivity).toLocaleTimeString();
+                document.getElementById('lastActivity').textContent = time;
+            } else {
+                document.getElementById('lastActivity').textContent = 'None';
+            }
+        }
+        
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours}h ${minutes}m ${secs}s`;
+        }
+        
+        function addLogEntry(message) {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Auto-refresh every 5 seconds
+        setInterval(refreshStatus, 5000);
+        
+        // Initial load
+        refreshStatus();
+    </script>
+</body>
+</html>

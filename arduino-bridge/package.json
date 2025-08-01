@@ -1,0 +1,59 @@
+{
+  "name": "arduino-ai-bridge",
+  "version": "1.0.0",
+  "description": "Local bridge for Arduino AI Control - connects your Arduino to the cloud interface",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "dev": "nodemon bridge.js",
+    "build": "pkg . --out-path dist/",
+    "build-win": "pkg . --targets node18-win-x64 --out-path dist/",
+    "build-mac": "pkg . --targets node18-macos-x64 --out-path dist/",
+    "build-linux": "pkg . --targets node18-linux-x64 --out-path dist/",
+    "test": "node test-bridge.js"
+  },
+  "keywords": [
+    "arduino",
+    "ai",
+    "bridge",
+    "iot",
+    "hardware",
+    "serial"
+  ],
+  "author": "Arduino AI Control",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luka-loehr/arduino-ai-control.git",
+    "directory": "arduino-bridge"
+  },
+  "homepage": "https://github.com/luka-loehr/arduino-ai-control/tree/main/arduino-bridge",
+  "bugs": {
+    "url": "https://github.com/luka-loehr/arduino-ai-control/issues"
+  },
+  "dependencies": {
+    "serialport": "^13.0.0",
+    "@serialport/parser-readline": "^13.0.0",
+    "ws": "^8.18.0",
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "uuid": "^10.0.0",
+    "node-machine-id": "^1.1.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0",
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "scripts": [
+      "bridge.js"
+    ],
+    "assets": [
+      "public/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

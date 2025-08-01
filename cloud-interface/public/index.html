@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino AI Control - Cloud Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .bridge-status {
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        
+        .status-card.scanning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .status-card.connected {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .status-card.no-bridge {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+        }
+        
+        .status-text h3 {
+            margin-bottom: 0.5rem;
+            color: #1e3c72;
+        }
+        
+        .bridge-setup {
+            padding: 2rem;
+        }
+        
+        .setup-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .step-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #2a5298;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 auto 1rem auto;
+        }
+        
+        .download-section {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .download-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .download-btn:hover {
+            background: #1e3c72;
+            transform: translateY(-2px);
+        }
+        
+        .transparency-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .transparency-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .transparency-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .transparency-card h4 {
+            color: #1e3c72;
+            margin-bottom: 0.5rem;
+        }
+        
+        .chat-interface {
+            padding: 2rem;
+            display: none;
+        }
+        
+        .chat-interface.active {
+            display: block;
+        }
+        
+        .api-key-setup {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .api-key-input {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .api-key-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .btn:hover {
+            background: #1e3c72;
+        }
+        
+        .chat-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            background: #2a5298;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.ai {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .scanning-animation {
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Arduino AI Control</h1>
+            <p>Control your Arduino with natural language - powered by AI</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Bridge Status Section -->
+            <div class="bridge-status">
+                <div class="status-card scanning" id="bridgeStatus">
+                    <div class="status-header">
+                        <div class="status-icon">🔍</div>
+                        <div class="status-text">
+                            <h3>Scanning for Arduino Bridge...</h3>
+                            <p id="statusMessage">Looking for local Arduino bridge on your computer</p>
+                        </div>
+                    </div>
+                    <div class="scanning-animation" id="scanningIndicator">●●●</div>
+                </div>
+            </div>
+            
+            <!-- Bridge Setup Instructions -->
+            <div class="bridge-setup" id="bridgeSetup">
+                <h2>🌉 Why Do You Need the Arduino Bridge?</h2>
+                <p>Your Arduino connects to your computer via USB. <strong>Web browsers cannot access USB devices directly</strong> for security reasons. The Arduino Bridge runs on your computer and provides secure communication between your Arduino and this cloud interface.</p>
+                
+                <div class="setup-steps">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h3>Download Bridge</h3>
+                        <p>Download the lightweight Arduino Bridge application for your operating system</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h3>Connect Arduino</h3>
+                        <p>Connect your Arduino to your computer via USB cable</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h3>Start Bridge</h3>
+                        <p>Run the bridge application - it will automatically detect your Arduino</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <h3>Control with AI</h3>
+                        <p>Return to this page and start controlling your Arduino with natural language!</p>
+                    </div>
+                </div>
+                
+                <div class="download-section">
+                    <h3>📥 Download Arduino Bridge</h3>
+                    <p>Choose your operating system:</p>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-windows.exe" class="download-btn">
+                        🪟 Windows
+                    </a>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-macos.dmg" class="download-btn">
+                        🍎 macOS
+                    </a>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-linux.deb" class="download-btn">
+                        🐧 Linux
+                    </a>
+                    <a href="https://github.com/luka-loehr/arduino-ai-control/tree/main/arduino-bridge" class="download-btn">
+                        📖 Build from Source
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Chat Interface (hidden until bridge connected) -->
+            <div class="chat-interface" id="chatInterface">
+                <div class="api-key-setup" id="apiKeySetup">
+                    <h3>🔑 Configure Your Google Gemini API Key</h3>
+                    <p>To enable AI control, you need a free Google Gemini API key. <a href="https://makersuite.google.com/app/apikey" target="_blank">Get one here</a>.</p>
+                    <div class="api-key-input">
+                        <input type="password" id="apiKeyInput" placeholder="Enter your Google Gemini API key...">
+                        <button class="btn" onclick="saveApiKey()">Save Key</button>
+                    </div>
+                </div>
+                
+                <h3>💬 Chat with Your Arduino</h3>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">
+                            <strong>Arduino AI:</strong> Hello! I'm ready to help you control your Arduino. Try saying something like "Turn on the LED" or "Blink the light 5 times".
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Type your command... (e.g., 'Turn on the LED', 'Blink 3 times')" onkeypress="handleKeyPress(event)">
+                        <button class="btn" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transparency Section -->
+            <div class="transparency-section">
+                <h3>🔍 Full Transparency & Open Source</h3>
+                <p>We believe in complete transparency. All code is open source and auditable.</p>
+                
+                <div class="transparency-grid">
+                    <div class="transparency-card">
+                        <h4>🔒 Your Privacy</h4>
+                        <p>No data collection. Your API key stays with you. All communication is encrypted.</p>
+                    </div>
+                    <div class="transparency-card">
+                        <h4>📖 Open Source</h4>
+                        <p>Complete source code available on GitHub. Audit every line of code.</p>
+                    </div>
+                    <div class="transparency-card">
+                        <h4>🛡️ Security</h4>
+                        <p>Local bridge ensures your Arduino stays under your control.</p>
+                    </div>
+                    <div class="transparency-card">
+                        <h4>🆓 Free Forever</h4>
+                        <p>No subscriptions, no hidden costs. Just bring your own API key.</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="https://github.com/luka-loehr/arduino-ai-control" class="download-btn">
+                        📖 View Source Code on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let connectedBridge = null;
+        let apiKeyConfigured = false;
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to cloud service');
+                startBridgeDiscovery();
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleWebSocketMessage(message);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from cloud service');
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        // Handle WebSocket messages
+        function handleWebSocketMessage(message) {
+            switch (message.type) {
+                case 'welcome':
+                    console.log('Welcome message received');
+                    break;
+                case 'bridge_list':
+                    handleBridgeList(message.bridges);
+                    break;
+                case 'bridge_available':
+                    handleBridgeAvailable(message.bridge);
+                    break;
+                case 'api_key_success':
+                    apiKeyConfigured = true;
+                    document.getElementById('apiKeySetup').style.display = 'none';
+                    break;
+                case 'chat_response':
+                    handleChatResponse(message);
+                    break;
+                case 'chat_error':
+                    addChatMessage('Error: ' + message.message, 'ai');
+                    break;
+            }
+        }
+        
+        // Start bridge discovery
+        function startBridgeDiscovery() {
+            ws.send(JSON.stringify({ type: 'bridge_discovery' }));
+            
+            // Repeat discovery every 5 seconds
+            setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.OPEN && !connectedBridge) {
+                    startBridgeDiscovery();
+                }
+            }, 5000);
+        }
+        
+        // Handle bridge list
+        function handleBridgeList(bridges) {
+            const statusCard = document.getElementById('bridgeStatus');
+            const statusMessage = document.getElementById('statusMessage');
+            const scanningIndicator = document.getElementById('scanningIndicator');
+            const bridgeSetup = document.getElementById('bridgeSetup');
+            const chatInterface = document.getElementById('chatInterface');
+            
+            if (bridges.length > 0) {
+                const bridge = bridges[0];
+                connectedBridge = bridge;
+                
+                statusCard.className = 'status-card connected';
+                statusCard.querySelector('.status-icon').textContent = '✅';
+                statusCard.querySelector('h3').textContent = 'Arduino Bridge Connected!';
+                statusMessage.textContent = `Bridge v${bridge.version} - Arduino ${bridge.arduino.connected ? 'connected' : 'not connected'}`;
+                scanningIndicator.style.display = 'none';
+                
+                bridgeSetup.style.display = 'none';
+                chatInterface.classList.add('active');
+            } else {
+                statusCard.className = 'status-card no-bridge';
+                statusCard.querySelector('.status-icon').textContent = '❌';
+                statusCard.querySelector('h3').textContent = 'No Arduino Bridge Found';
+                statusMessage.textContent = 'Please download and run the Arduino Bridge application';
+                scanningIndicator.style.display = 'none';
+                
+                bridgeSetup.style.display = 'block';
+                chatInterface.classList.remove('active');
+            }
+        }
+        
+        // Handle new bridge available
+        function handleBridgeAvailable(bridge) {
+            handleBridgeList([bridge]);
+        }
+        
+        // Save API key
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!apiKey) {
+                alert('Please enter your API key');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'set_api_key',
+                apiKey: apiKey
+            }));
+        }
+        
+        // Send chat message
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            if (!connectedBridge) {
+                alert('Please connect your Arduino Bridge first');
+                return;
+            }
+            if (!apiKeyConfigured) {
+                alert('Please configure your API key first');
+                return;
+            }
+            
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            ws.send(JSON.stringify({
+                type: 'chat_message',
+                text: message,
+                bridgeId: connectedBridge.id
+            }));
+        }
+        
+        // Handle chat response
+        function handleChatResponse(message) {
+            addChatMessage(message.text, 'ai');
+            
+            if (message.functionsCalled && message.functionsCalled.length > 0) {
+                const functionsText = message.functionsCalled.map(f => `${f.name}(${JSON.stringify(f.args)})`).join(', ');
+                addChatMessage(`Executed: ${functionsText}`, 'ai', true);
+            }
+        }
+        
+        // Add chat message
+        function addChatMessage(text, sender, isFunction = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            if (isFunction) {
+                messageDiv.innerHTML = `<strong>System:</strong> ${text}`;
+                messageDiv.style.background = '#e3f2fd';
+                messageDiv.style.color = '#1565c0';
+            } else if (sender === 'user') {
+                messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
+            } else {
+                messageDiv.innerHTML = `<strong>Arduino AI:</strong> ${text}`;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Handle enter key in chat input
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Initialize the application
+        initWebSocket();
+    </script>
+</body>
+</html>

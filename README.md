@@ -4,61 +4,58 @@ An intelligent Arduino control system that allows you to control Arduino devices
 
 ## Features
 
-### 🤖 AI-Powered Control
-- **Natural Language Interface**: Control your Arduino using plain English commands
-- **Google Gemini Integration**: Advanced AI understanding of hardware control requests
-- **Real-time Communication**: WebSocket-based instant feedback and status updates
-
-### 🧙‍♂️ Intelligent Setup Wizard
-- **Guided Setup**: Step-by-step wizard walks you through the entire setup process
-- **API Key Management**: Secure in-browser API key configuration with validation
-- **Arduino Detection**: Automatic detection and selection of connected Arduino boards
-- **One-Click Firmware Upload**: Automated compilation and upload of Arduino firmware
-- **System Testing**: Built-in tests to verify everything is working correctly
-- **Clean Interface**: Disabled controls until setup is complete, preventing confusion
-
-### 💡 Advanced LED Control
-- **Basic Control**: Simple on/off commands
-- **Blinking Effects**: Customizable blink rates (50ms to 5000ms)
-- **Fading Effects**: Smooth fade in/out with adjustable speed
-- **Morse Code**: Display text messages in morse code
-- **Custom Patterns**: Binary patterns for complex light sequences
-- **Real-time Status**: Live LED state visualization
-
-### 📍 Comprehensive Pin Control
-- **Digital I/O**: Read and write digital pins with mode configuration
-- **Analog I/O**: PWM output and analog input reading
-- **Servo Control**: Precise servo motor positioning (0-180 degrees)
-- **Pin Monitoring**: Real-time pin state visualization
-- **Safety Validation**: Input validation and error handling
-
-### 🌐 Modern Web Interface
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Real-time Dashboard**: Live system status and hardware monitoring
-- **Quick Controls**: One-click buttons for common operations
-- **Setup Integration**: Built-in Arduino setup and firmware management
-- **Progress Tracking**: Visual feedback for all operations
+- **Natural Language Control**: Control your Arduino using plain English commands
+- **Real-time Communication**: Instant feedback and status updates
+- **Advanced LED Control**: 
+  - Basic on/off control
+  - Blinking with custom rates
+  - Fading effects
+  - Morse code display
+  - Custom patterns
+- **Pin Control**: Digital and analog pin manipulation
+- **PWM Control**: Precise PWM output control
+- **Servo Control**: Servo motor positioning
+- **Custom Code Execution**: Execute custom Arduino code dynamically
+- **Web Interface**: Clean, responsive web UI with real-time status indicators
 
 ## System Requirements
 
-- **Node.js** (v14 or higher)
-- **Arduino board** (tested with Arduino Uno, Nano, Mega)
-- **USB cable** to connect Arduino to computer
-- **Google Gemini API key** (free from Google AI Studio)
-- **arduino-cli** (automatically installed by setup wizard)
+- Node.js (v14 or higher)
+- Arduino IDE or compatible development environment
+- Arduino board (tested with Arduino Uno)
+- Google Gemini API key
 
 ## Hardware Setup
 
-1. **Connect your Arduino** to your computer via USB cable
-2. **Ensure drivers are installed** (usually automatic on modern systems)
-3. **Start the application** - the setup wizard will handle the rest!
+1. Connect your Arduino to your computer via USB
+2. The Arduino should appear as `/dev/ttyACM0` on Linux systems
+3. Upload the provided Arduino sketch to your board
 
-## Quick Start
+## 🚀 Quick Start
+
+### **Option 1: Cloud Interface (Recommended)**
+
+1. **Visit**: [arduino-control.ai](https://arduino-control.ai) 🌐
+
+2. **Download Arduino Bridge** for your OS:
+   - [🪟 Windows](https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-windows.exe)
+   - [🍎 macOS](https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-macos.dmg)
+   - [🐧 Linux](https://github.com/luka-loehr/arduino-ai-control/releases/latest/download/arduino-bridge-linux.deb)
+
+3. **Install & run the bridge** on your computer
+
+4. **Connect Arduino** via USB (bridge auto-detects it)
+
+5. **Get free API key** from [Google AI Studio](https://makersuite.google.com/app/apikey) 🔑
+
+6. **Start controlling** with natural language! 🎉
+
+### **Option 2: Local Development**
 
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/luka-loehr/arduino-ai-control.git
-   cd arduino-ai-control
+   cd arduino-ai-control/arduino-control-app
    ```
 
 2. **Install dependencies**:
@@ -68,43 +65,40 @@ An intelligent Arduino control system that allows you to control Arduino devices
 
 3. **Start the application**:
    ```bash
-   npm run dev
+   npm start
    ```
 
-4. **Open your browser** and navigate to `http://localhost:3000`
+4. **Open browser** → `http://localhost:3000`
 
-5. **Follow the Setup Wizard**:
-   - The web interface will guide you through the complete setup process
-   - Configure your Google Gemini API key
-   - Detect and connect to your Arduino
-   - Upload firmware automatically
-   - Test the system
+5. **Follow setup wizard** for automatic configuration
 
-That's it! The setup wizard handles everything for you.
+## 🔍 Why Two Options?
 
-## Manual Setup (Advanced Users)
+- **Cloud Interface**: Easy to use, no setup, always up-to-date
+- **Local Development**: Full control, offline capable, development-friendly
 
-If you prefer manual setup or need to troubleshoot:
+Both options are **100% transparent** with complete source code available!
 
-1. **Get a Google Gemini API Key**:
-   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Create a free API key
-   - Keep it handy for the setup wizard
+## 🔍 Complete Transparency
 
-2. **Prepare your Arduino**:
-   - Connect your Arduino via USB
-   - Ensure it's recognized by your system
-   - The setup wizard will handle firmware upload
+### **Why the Arduino Bridge?**
+Web browsers **cannot access USB devices directly** for security. The bridge runs locally on your computer and provides secure communication between your Arduino and the cloud AI service.
 
-3. **Test your setup**:
-   ```bash
-   ./test-setup.js
-   ```
+### **What We Collect**
+**Nothing.** No user accounts, no command logging, no usage analytics. Your API key stays in your browser memory only.
 
-4. **Test Arduino functions** (after setup):
-   ```bash
-   node test-arduino-functions.js
-   ```
+### **Full Source Code**
+- **Main Repository**: https://github.com/luka-loehr/arduino-ai-control
+- **Arduino Bridge**: https://github.com/luka-loehr/arduino-ai-control/tree/main/arduino-bridge
+- **Cloud Interface**: https://github.com/luka-loehr/arduino-ai-control/tree/main/cloud-interface
+- **Transparency Doc**: [TRANSPARENCY.md](TRANSPARENCY.md)
+
+### **Security**
+- ✅ **Open source** - audit every line of code
+- ✅ **Local bridge** - your Arduino stays under your control
+- ✅ **Encrypted communication** - all data protected in transit
+- ✅ **No data storage** - nothing persisted on our servers
+- ✅ **Your API key** - never sent to our servers
 
 ## Usage
 

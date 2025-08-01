@@ -3,9 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arduino AI Control Center</title>
+    <title>Arduino AI Control System</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        :root {
+            /* Dark theme color palette */
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-elevated: #1f1f1f;
+            --bg-hover: #252525;
+            
+            --border-primary: #2a2a2a;
+            --border-secondary: #333333;
+            --border-focus: #4a4a4a;
+            
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --text-tertiary: #707070;
+            
+            --accent-primary: #3b82f6;
+            --accent-secondary: #2563eb;
+            --accent-hover: #1d4ed8;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #6366f1;
+            
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+            
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,52 +53,79 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        h1 { font-size: 1.875rem; }
+        h2 { font-size: 1.5rem; }
+        h3 { font-size: 1.25rem; }
+        h4 { font-size: 1.125rem; }
+
+        /* Layout */
         .app-container {
             display: flex;
             height: 100vh;
+            overflow: hidden;
         }
 
+        /* Sidebar */
         .sidebar {
-            width: 300px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
-        .main-content {
-            flex: 1;
+        .sidebar-header {
+            padding: 1.5rem;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .logo {
             display: flex;
-            flex-direction: column;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
 
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-primary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .logo-text {
+            font-size: 1.125rem;
+            font-weight: 600;
         }
 
         .status-bar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            font-size: 0.9rem;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
         }
 
         .status-indicator {
@@ -68,368 +135,666 @@
         }
 
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background-color: #dc3545;
-            transition: all 0.3s ease;
+            background: var(--error);
+            transition: all var(--transition-base);
         }
 
         .status-dot.connected {
-            background-color: #28a745;
-            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
         }
 
         .status-dot.connecting {
-            background-color: #ffc107;
-            animation: pulse 1s infinite;
+            background: var(--warning);
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                transform: scale(0.95);
+            }
         }
 
-        .setup-section {
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
             padding: 1rem;
-            border-bottom: 1px solid #e0e0e0;
         }
 
-        .setup-section h3 {
-            margin-bottom: 1rem;
-            color: #1e3c72;
-            font-size: 1.1rem;
+        /* Sections */
+        .section {
+            margin-bottom: 1.5rem;
         }
 
-        .setup-step {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: white;
-        }
-
-        .setup-step.active {
-            border-color: #2a5298;
-            background: #f8f9ff;
-        }
-
-        .setup-step.completed {
-            border-color: #28a745;
-            background: #f8fff8;
-        }
-
-        .step-header {
+        .section-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
         }
 
-        .step-number {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #e0e0e0;
-            color: #666;
-            display: flex;
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            transition: all var(--transition-base);
+        }
+
+        .card:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-secondary);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .step-number.active {
-            background: #2a5298;
-            color: white;
-        }
-
-        .step-number.completed {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn {
-            background: #2a5298;
-            color: white;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            transition: all var(--transition-fast);
+            outline: none;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn:hover {
-            background: #1e3c72;
-            transform: translateY(-1px);
+        .btn:focus-visible {
+            box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
         }
 
         .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
-
-        .btn-success:hover {
-            background: #1e7e34;
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-
-        .arduino-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            margin: 0.5rem 0;
-        }
-
-        .arduino-item {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e0e0e0;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .arduino-item:hover {
-            background: #f8f9fa;
-        }
-
-        .arduino-item.selected {
-            background: #e3f2fd;
-            border-color: #2196f3;
-        }
-
-        .arduino-item:last-child {
-            border-bottom: none;
-        }
-
-        .arduino-info {
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-
-        .arduino-details {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .api-key-input {
-            display: flex;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
-        }
-
-        .api-key-input input {
-            flex: 1;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .api-key-input input:focus {
-            outline: none;
-            border-color: #2a5298;
-            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
-        }
-
-        .api-key-status {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-
-        .api-key-status.configured {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .api-key-status.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        /* Setup Wizard Styles */
-        .setup-wizard-btn {
-            width: 100%;
-            padding: 1rem;
-            font-size: 1.1rem;
-            font-weight: bold;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .setup-wizard-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-        }
-
-        .setup-overview {
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .setup-status {
-            margin: 1rem 0;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
-        }
-
-        .status-icon {
-            font-size: 1.2rem;
-        }
-
-        /* Disabled Panel Styles */
-        .control-panel.disabled {
-            position: relative;
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .disabled-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            color: #666;
-            border-radius: 8px;
-        }
-
-        .control-btn.disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        /* Wizard Modal Styles */
-        .wizard-content {
-            max-width: 700px;
-            width: 95vw;
-            max-height: 90vh;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .wizard-header {
-            padding: 2rem 2rem 1rem 2rem;
-            border-bottom: 1px solid #e0e0e0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .btn-primary {
+            background: var(--accent-primary);
             color: white;
         }
 
-        .wizard-header h2 {
-            margin: 0 0 1rem 0;
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-secondary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-hover);
+            border-color: var(--border-focus);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* Input fields */
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all var(--transition-fast);
+            outline: none;
+        }
+
+        .input:focus {
+            border-color: var(--accent-primary);
+            background: var(--bg-secondary);
+        }
+
+        .input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.875rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
             text-align: center;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .action-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .action-btn .icon {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Pin Grid */
+        .pin-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .pin-item {
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            text-align: center;
+            font-size: 0.75rem;
+            transition: all var(--transition-fast);
+        }
+
+        .pin-item.output {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .pin-item.input {
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .pin-item.high {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .pin-label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            padding: 1rem 1.5rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--border-secondary);
+            border-radius: 4px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: var(--border-focus);
+        }
+
+        /* Messages */
+        .message {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.875rem;
+        }
+
+        .message.user .message-avatar {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .message.ai .message-avatar {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .message-author {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .message-body {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: 0.875rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .message.user .message-body {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+            margin-left: auto;
+            max-width: 70%;
+        }
+
+        .message.ai .message-body {
+            max-width: 85%;
+        }
+
+        .message.system {
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .message.system .message-body {
+            background: var(--bg-tertiary);
+            border-color: var(--border-secondary);
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            padding: 0.5rem 1rem;
+        }
+
+        /* Function Calls */
+        .function-call {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-left: 3px solid var(--info);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0 0.5rem 2.75rem;
+            font-size: 0.8125rem;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            color: var(--text-secondary);
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+        }
+
+        .typing-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 0.75rem 1rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            animation: typingDot 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingDot {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1rem 1.5rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            resize: none;
+            outline: none;
+            transition: all var(--transition-fast);
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-primary);
+            background: var(--bg-primary);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+            animation: modalFade 0.2s ease-out;
+        }
+
+        @keyframes modalFade {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-xl);
+            animation: modalSlide 0.3s ease-out;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-primary);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        /* Wizard Specific */
+        .wizard-content {
+            max-width: 720px;
         }
 
         .wizard-progress {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
         }
 
-        .progress-steps {
+        .progress-track {
             display: flex;
             align-items: center;
-            margin-bottom: 0.5rem;
         }
 
-        .step-dot {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
+        .progress-step {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            transition: all var(--transition-base);
+            position: relative;
         }
 
-        .step-dot.active {
-            background: white;
-            color: #667eea;
+        .progress-step.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
             transform: scale(1.1);
         }
 
-        .step-dot.completed {
-            background: #28a745;
+        .progress-step.completed {
+            background: var(--success);
+            border-color: var(--success);
             color: white;
         }
 
-        .step-line {
-            width: 60px;
+        .progress-line {
+            width: 80px;
             height: 2px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 0 10px;
+            background: var(--border-primary);
+            transition: all var(--transition-base);
         }
 
-        .step-labels {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 400px;
-            font-size: 0.8rem;
-            opacity: 0.9;
+        .progress-line.completed {
+            background: var(--success);
         }
 
-        .wizard-content-area {
-            flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
-        }
-
-        .wizard-step {
+        .step-content {
             display: none;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        .wizard-step.active {
+        .step-content.active {
             display: block;
-            animation: fadeInSlide 0.3s ease-in;
         }
 
-        @keyframes fadeInSlide {
+        @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateX(20px);
+                transform: translateX(10px);
             }
             to {
                 opacity: 1;
@@ -437,333 +802,105 @@
             }
         }
 
-        .wizard-step h3 {
-            color: #1e3c72;
-            margin-bottom: 1rem;
-        }
-
-        .wizard-footer {
-            padding: 1rem 2rem;
-            border-top: 1px solid #e0e0e0;
-            background: #f8f9fa;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .api-key-setup, .detection-area, .connection-area, .firmware-area, .test-area {
-            margin-top: 1.5rem;
-        }
-
-        .selected-board {
-            padding: 1rem;
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            font-weight: bold;
-        }
-
-        .success-message {
-            text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border-radius: 8px;
-            color: #155724;
-        }
-
-        .success-message h4 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-        .control-panel {
-            padding: 1rem;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .control-btn {
-            padding: 0.75rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s ease;
-            font-size: 0.8rem;
-        }
-
-        .control-btn:hover {
-            background: #f8f9fa;
-            border-color: #2a5298;
-        }
-
-        .control-btn.active {
-            background: #2a5298;
-            color: white;
-            border-color: #2a5298;
-        }
-
-        .pin-controls {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .pin-item {
-            padding: 0.5rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 0.8rem;
-            background: white;
-        }
-
-        .pin-item.output {
-            background: #e8f5e8;
-            border-color: #28a745;
-        }
-
-        .pin-item.input {
-            background: #e3f2fd;
-            border-color: #2196f3;
-        }
-
-        .pin-item.high {
-            background: #fff3cd;
-            border-color: #ffc107;
-        }
-
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            background: #fafafa;
-        }
-
-        .message {
-            max-width: 80%;
-            padding: 0.75rem 1rem;
-            border-radius: 18px;
-            word-wrap: break-word;
-            line-height: 1.4;
-        }
-
-        .user-message {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
-            color: white;
-        }
-
-        .ai-message {
-            align-self: flex-start;
-            background: white;
-            color: #333;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .system-message {
-            align-self: center;
-            background: #e8f4fd;
-            color: #1565c0;
-            font-size: 0.9rem;
-            text-align: center;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            border: 1px solid #bbdefb;
-        }
-
-        .function-call {
-            background: #f3e5f5;
-            border: 1px solid #ce93d8;
-            color: #7b1fa2;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            border-radius: 6px;
-        }
-
-        .input-container {
-            padding: 1rem;
-            border-top: 1px solid #e0e0e0;
-            background: white;
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        #messageInput {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 24px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        #messageInput:focus {
-            border-color: #2a5298;
-            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
-        }
-
-        #sendButton {
-            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 24px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s;
-        }
-
-        #sendButton:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.3);
-        }
-
-        #sendButton:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .typing-indicator {
-            display: none;
-            align-self: flex-start;
-            padding: 0.75rem 1rem;
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 18px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .typing-indicator.show {
-            display: block;
-        }
-
-        .typing-indicator span {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #999;
-            margin: 0 2px;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
+        /* Lists */
+        .device-list {
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            margin: 0.5rem 0;
+            margin: 1rem 0;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2a5298, #1e3c72);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .log-container {
-            max-height: 150px;
-            overflow-y: auto;
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 0.5rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-        }
-
-        .log-entry {
-            margin-bottom: 0.25rem;
-            color: #666;
-        }
-
-        .log-entry.error {
-            color: #dc3545;
-        }
-
-        .log-entry.success {
-            color: #28a745;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+        .device-item {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
             display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            justify-content: space-between;
         }
 
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+        .device-item:last-child {
+            border-bottom: none;
         }
 
-        .modal h3 {
-            margin-bottom: 1rem;
-            color: #1e3c72;
+        .device-item:hover {
+            background: var(--bg-hover);
         }
 
+        .device-item.selected {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .device-details {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            margin: 1rem 0;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-message.info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--info);
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .status-message.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        /* Loading States */
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-secondary);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
@@ -773,244 +910,301 @@
                 width: 100%;
                 height: auto;
                 max-height: 40vh;
-                overflow-y: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-primary);
             }
 
-            .control-grid {
+            .quick-actions {
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .pin-controls {
+            .pin-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .message.user .message-body,
+            .message.ai .message-body {
+                max-width: 100%;
+            }
+
+            .modal-content {
+                margin: 0.5rem;
             }
         }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar with System Status -->
-        <div class="sidebar">
-            <div class="header">
-                <h1>🤖 Arduino AI Control</h1>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">⚡</div>
+                    <div class="logo-text">Arduino AI Control</div>
+                </div>
                 <div class="status-bar">
                     <div class="status-indicator">
                         <div class="status-dot" id="connectionStatus"></div>
-                        <span id="connectionText">Not Set Up</span>
+                        <span id="connectionText">Disconnected</span>
                     </div>
                     <div class="status-indicator">
-                        <span id="systemStatus">Setup Required</span>
+                        <span id="systemStatus">Offline</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Setup Section -->
-            <div class="setup-section">
-                <h3>🚀 System Setup</h3>
-                <div class="setup-overview">
-                    <p>Welcome! Set up your Arduino AI control system to get started.</p>
-                    <button class="btn btn-primary setup-wizard-btn" id="startSetupBtn" onclick="startSetupWizard()">
-                        🛠️ Start Setup Wizard
-                    </button>
-                    <div class="setup-status hidden" id="setupStatus">
-                        <div class="status-item">
-                            <span class="status-icon" id="apiKeyIcon">❌</span>
-                            <span>API Key</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-icon" id="arduinoIcon">❌</span>
-                            <span>Arduino Connection</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-icon" id="firmwareIcon">❌</span>
-                            <span>Firmware</span>
+            <div class="sidebar-content">
+                <!-- Setup Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">System Setup</h3>
+                    </div>
+                    <div class="card" id="setupCard">
+                        <p class="text-center mb-2">Configure your Arduino AI system</p>
+                        <button class="btn btn-primary btn-full" id="startSetupBtn" onclick="startSetupWizard()">
+                            Start Setup Wizard
+                        </button>
+                        <div class="hidden mt-2" id="setupComplete">
+                            <div class="status-message success">
+                                <span>✓</span>
+                                <span>System configured</span>
+                            </div>
+                            <button class="btn btn-secondary btn-full" onclick="startSetupWizard()">
+                                Reconfigure
+                            </button>
                         </div>
                     </div>
-                    <button class="btn btn-warning hidden" id="reconfigureBtn" onclick="startSetupWizard()">
-                        🔧 Reconfigure System
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="section disabled" id="quickActionsSection">
+                    <div class="section-header">
+                        <h3 class="section-title">Quick Actions</h3>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="quickCommand('ledOn')">
+                            <span class="icon">💡</span>
+                            <span>LED On</span>
+                        </button>
+                        <button class="action-btn" onclick="quickCommand('ledOff')">
+                            <span class="icon">⚫</span>
+                            <span>LED Off</span>
+                        </button>
+                        <button class="action-btn" onclick="quickCommand('ledBlink')">
+                            <span class="icon">✨</span>
+                            <span>Blink</span>
+                        </button>
+                        <button class="action-btn" onclick="quickCommand('ledFade')">
+                            <span class="icon">🌅</span>
+                            <span>Fade</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pin Status -->
+                <div class="section disabled" id="pinStatusSection">
+                    <div class="section-header">
+                        <h3 class="section-title">Pin Status</h3>
+                    </div>
+                    <div class="pin-grid" id="pinStatus">
+                        <!-- Pin status will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="chat-header">
+                <h2 class="chat-title">AI Assistant</h2>
+                <div class="header-actions">
+                    <button class="btn btn-ghost btn-icon" onclick="clearChat()" title="Clear chat">
+                        🗑️
                     </button>
                 </div>
             </div>
 
-            <!-- Quick Controls (Disabled initially) -->
-            <div class="control-panel disabled" id="quickControlsPanel">
-                <h3>⚡ Quick Controls</h3>
-                <div class="control-grid">
-                    <div class="control-btn disabled" onclick="quickCommand('ledOn')">💡 LED On</div>
-                    <div class="control-btn disabled" onclick="quickCommand('ledOff')">🌑 LED Off</div>
-                    <div class="control-btn disabled" onclick="quickCommand('ledBlink')">✨ Blink</div>
-                    <div class="control-btn disabled" onclick="quickCommand('ledFade')">🌅 Fade</div>
-                </div>
-                <div class="disabled-overlay">
-                    <span>Complete setup to enable controls</span>
-                </div>
-            </div>
-
-            <!-- Pin Status (Disabled initially) -->
-            <div class="control-panel disabled" id="pinStatusPanel">
-                <h3>📍 Pin Status</h3>
-                <div class="pin-controls" id="pinStatus">
-                    <!-- Pin status will be populated here -->
-                </div>
-                <div class="disabled-overlay">
-                    <span>Complete setup to view pin status</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Chat Interface -->
-        <div class="main-content">
             <div class="chat-container" id="chatContainer">
-                <div class="system-message">
-                    🚀 Welcome to Arduino AI Control! Set up your Arduino using the sidebar, then start chatting with your board!
+                <div class="message system">
+                    <div class="message-body">
+                        Welcome to Arduino AI Control System. Please complete the setup to begin.
+                    </div>
                 </div>
             </div>
 
             <div class="typing-indicator" id="typingIndicator">
-                <span></span>
-                <span></span>
-                <span></span>
+                <div class="typing-avatar">🤖</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
             </div>
 
-            <div class="input-container">
-                <input
-                    type="text"
-                    id="messageInput"
-                    placeholder="Ask me to control your Arduino... (e.g., 'Turn on the LED', 'Blink 3 times', 'Read pin 2')"
-                    onkeypress="handleKeyPress(event)"
-                    disabled
-                >
-                <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea
+                        id="messageInput"
+                        class="chat-input"
+                        placeholder="Ask me to control your Arduino..."
+                        rows="1"
+                        disabled
+                    ></textarea>
+                    <button class="btn btn-primary" id="sendButton" onclick="sendMessage()" disabled>
+                        Send
+                    </button>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Setup Wizard Modal -->
     <div class="modal hidden" id="setupWizardModal">
         <div class="modal-content wizard-content">
-            <div class="wizard-header">
-                <h2>🛠️ Arduino AI Setup Wizard</h2>
-                <div class="wizard-progress">
-                    <div class="progress-steps">
-                        <div class="step-dot active" id="wizardStep1">1</div>
-                        <div class="step-line"></div>
-                        <div class="step-dot" id="wizardStep2">2</div>
-                        <div class="step-line"></div>
-                        <div class="step-dot" id="wizardStep3">3</div>
-                        <div class="step-line"></div>
-                        <div class="step-dot" id="wizardStep4">4</div>
-                        <div class="step-line"></div>
-                        <div class="step-dot" id="wizardStep5">5</div>
-                    </div>
-                    <div class="step-labels">
-                        <span>API Key</span>
-                        <span>Detect</span>
-                        <span>Connect</span>
-                        <span>Firmware</span>
-                        <span>Test</span>
-                    </div>
+            <div class="modal-header">
+                <h2 class="modal-title">Arduino Setup Wizard</h2>
+                <button class="btn btn-ghost btn-icon" onclick="cancelSetup()">✕</button>
+            </div>
+
+            <div class="wizard-progress">
+                <div class="progress-track">
+                    <div class="progress-step active" id="step1">1</div>
+                    <div class="progress-line" id="line1"></div>
+                    <div class="progress-step" id="step2">2</div>
+                    <div class="progress-line" id="line2"></div>
+                    <div class="progress-step" id="step3">3</div>
+                    <div class="progress-line" id="line3"></div>
+                    <div class="progress-step" id="step4">4</div>
+                    <div class="progress-line" id="line4"></div>
+                    <div class="progress-step" id="step5">5</div>
                 </div>
             </div>
 
-            <div class="wizard-content-area">
-                <!-- Step 1: API Key Setup -->
-                <div class="wizard-step active" id="wizardStepContent1">
-                    <h3>🔑 Configure Google Gemini API Key</h3>
-                    <p>To enable AI control, you need a Google Gemini API key. This is free and takes just a minute to set up.</p>
+            <div class="modal-body">
+                <!-- Step 1: API Key -->
+                <div class="step-content active" id="stepContent1">
+                    <h3 class="mb-3">Configure Google Gemini API</h3>
+                    <p class="mb-3">To enable AI control, you'll need a Google Gemini API key.</p>
+                    
+                    <div class="input-group">
+                        <label class="input-label">API Key</label>
+                        <input 
+                            type="password" 
+                            class="input" 
+                            id="wizardApiKeyInput" 
+                            placeholder="Enter your API key..."
+                        />
+                    </div>
 
-                    <div class="api-key-setup">
-                        <div class="api-key-input">
-                            <input type="password" id="wizardApiKeyInput" placeholder="Enter your Google Gemini API key..." />
-                            <button class="btn" onclick="validateApiKey()">✓ Validate</button>
-                        </div>
-                        <div class="api-key-help">
-                            <button class="btn btn-info" onclick="openApiKeyHelp()">❓ How to get an API key</button>
-                        </div>
-                        <div class="api-key-status" id="wizardApiKeyStatus">
-                            <span>Enter your API key above to continue</span>
-                        </div>
+                    <button class="btn btn-secondary" onclick="openApiKeyHelp()">
+                        How to get an API key
+                    </button>
+
+                    <div class="status-message info mt-2" id="apiKeyStatus">
+                        Enter your API key to continue
                     </div>
                 </div>
 
-                <!-- Step 2: Arduino Detection -->
-                <div class="wizard-step" id="wizardStepContent2">
-                    <h3>🔍 Detect Arduino Board</h3>
-                    <p>Connect your Arduino to your computer via USB cable, then click detect to find available boards.</p>
+                <!-- Step 2: Detect Arduino -->
+                <div class="step-content" id="stepContent2">
+                    <h3 class="mb-3">Detect Arduino Board</h3>
+                    <p class="mb-3">Connect your Arduino via USB and click detect.</p>
+                    
+                    <button class="btn btn-primary" id="detectBtn" onclick="wizardDetectArduino()">
+                        Detect Arduino
+                    </button>
 
-                    <div class="detection-area">
-                        <button class="btn btn-primary" id="wizardDetectBtn" onclick="wizardDetectArduino()">
-                            🔍 Detect Arduino Boards
-                        </button>
-                        <div class="arduino-list hidden" id="wizardArduinoList"></div>
-                        <div class="detection-status" id="wizardDetectionStatus">
-                            <span>Click detect to scan for Arduino boards</span>
-                        </div>
+                    <div class="device-list hidden mt-3" id="deviceList"></div>
+
+                    <div class="status-message info mt-2" id="detectStatus">
+                        Click detect to scan for Arduino boards
                     </div>
                 </div>
 
-                <!-- Step 3: Connect to Arduino -->
-                <div class="wizard-step" id="wizardStepContent3">
-                    <h3>🔌 Connect to Arduino</h3>
-                    <p>Establish a connection to your selected Arduino board.</p>
+                <!-- Step 3: Connect -->
+                <div class="step-content" id="stepContent3">
+                    <h3 class="mb-3">Connect to Arduino</h3>
+                    <div class="card mb-3" id="selectedDevice">
+                        <p>No device selected</p>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="connectBtn" onclick="wizardConnectArduino()" disabled>
+                        Connect
+                    </button>
 
-                    <div class="connection-area">
-                        <div class="selected-board" id="wizardSelectedBoard">
-                            <span>No board selected</span>
-                        </div>
-                        <button class="btn btn-primary" id="wizardConnectBtn" onclick="wizardConnectArduino()" disabled>
-                            🔌 Connect to Arduino
-                        </button>
-                        <div class="connection-status" id="wizardConnectionStatus">
-                            <span>Select a board from the previous step</span>
-                        </div>
+                    <div class="status-message info mt-2" id="connectStatus">
+                        Select a device to connect
                     </div>
                 </div>
 
                 <!-- Step 4: Upload Firmware -->
-                <div class="wizard-step" id="wizardStepContent4">
-                    <h3>📤 Upload AI Control Firmware</h3>
-                    <p>Upload the specialized firmware that enables AI control of your Arduino.</p>
+                <div class="step-content" id="stepContent4">
+                    <h3 class="mb-3">Upload Firmware</h3>
+                    <p class="mb-3">Upload the AI control firmware to your Arduino.</p>
+                    
+                    <button class="btn btn-primary" id="uploadBtn" onclick="wizardUploadFirmware()" disabled>
+                        Upload Firmware
+                    </button>
 
-                    <div class="firmware-area">
-                        <button class="btn btn-primary" id="wizardUploadBtn" onclick="wizardUploadFirmware()" disabled>
-                            📤 Upload Firmware
-                        </button>
-                        <div class="progress-bar hidden" id="wizardUploadProgress">
-                            <div class="progress-fill" id="wizardUploadProgressFill"></div>
-                        </div>
-                        <div class="log-container hidden" id="wizardUploadLog"></div>
-                        <div class="upload-status" id="wizardUploadStatus">
-                            <span>Ready to upload firmware</span>
-                        </div>
+                    <div class="status-message info mt-2" id="uploadStatus">
+                        Ready to upload firmware
                     </div>
                 </div>
 
-                <!-- Step 5: Test Connection -->
-                <div class="wizard-step" id="wizardStepContent5">
-                    <h3>🧪 Test System</h3>
-                    <p>Let's test the connection and make sure everything is working properly.</p>
+                <!-- Step 5: Test -->
+                <div class="step-content" id="stepContent5">
+                    <h3 class="mb-3">Test Connection</h3>
+                    <p class="mb-3">Let's verify everything is working correctly.</p>
+                    
+                    <button class="btn btn-primary" id="testBtn" onclick="wizardTestSystem()" disabled>
+                        Run Test
+                    </button>
 
-                    <div class="test-area">
-                        <button class="btn btn-primary" id="wizardTestBtn" onclick="wizardTestSystem()" disabled>
-                            🧪 Test Connection
-                        </button>
-                        <div class="test-results" id="wizardTestResults">
-                            <span>Click test to verify your setup</span>
-                        </div>
-                        <div class="setup-complete hidden" id="wizardSetupComplete">
-                            <div class="success-message">
-                                <h4>🎉 Setup Complete!</h4>
-                                <p>Your Arduino AI control system is ready to use. You can now control your Arduino using natural language commands!</p>
-                            </div>
+                    <div class="status-message info mt-2" id="testStatus">
+                        Click test to verify your setup
+                    </div>
+
+                    <div class="hidden mt-3" id="setupSuccessMessage">
+                        <div class="status-message success">
+                            <span>🎉</span>
+                            <span>Setup completed successfully!</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="wizard-footer">
-                <button class="btn btn-secondary" id="wizardPrevBtn" onclick="wizardPrevStep()" disabled>← Previous</button>
-                <button class="btn btn-primary" id="wizardNextBtn" onclick="wizardNextStep()" disabled>Next →</button>
-                <button class="btn btn-success hidden" id="wizardFinishBtn" onclick="finishSetup()">🎉 Finish Setup</button>
-                <button class="btn btn-secondary" id="wizardCancelBtn" onclick="cancelSetup()">Cancel</button>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="prevBtn" onclick="wizardPrevStep()" disabled>
+                    Previous
+                </button>
+                <button class="btn btn-primary" id="nextBtn" onclick="wizardNextStep()" disabled>
+                    Next
+                </button>
+                <button class="btn btn-primary hidden" id="finishBtn" onclick="finishSetup()">
+                    Finish
+                </button>
             </div>
         </div>
     </div>
@@ -1042,8 +1236,8 @@
             appState.ws = new WebSocket(wsUrl);
 
             appState.ws.onopen = () => {
-                console.log('🔗 WebSocket connected');
-                addSystemMessage('Connected to server');
+                console.log('WebSocket connected');
+                updateConnectionStatus('connected');
             };
 
             appState.ws.onmessage = (event) => {
@@ -1056,14 +1250,13 @@
             };
 
             appState.ws.onclose = () => {
-                console.log('🔌 WebSocket disconnected');
-                addSystemMessage('Disconnected from server', 'error');
-                setTimeout(initWebSocket, 3000); // Reconnect after 3 seconds
+                console.log('WebSocket disconnected');
+                updateConnectionStatus('disconnected');
+                setTimeout(initWebSocket, 3000);
             };
 
             appState.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                addSystemMessage('Connection error', 'error');
             };
         }
 
@@ -1083,25 +1276,19 @@
                     onArduinoDisconnected();
                     break;
                 case 'upload_progress':
-                    updateUploadProgress(data.data.message);
+                    updateUploadProgress(data.data);
+                    break;
+                case 'upload_success':
+                    onUploadSuccess();
                     break;
                 case 'upload_error':
-                    addUploadLog(data.data.message, 'error');
+                    onUploadError(data.data);
                     break;
-                case 'firmware_required':
-                    setSetupStep(3);
-                    break;
-                case 'setup_complete':
-                    onSetupComplete();
+                case 'test_complete':
+                    onTestComplete(data.data);
                     break;
                 case 'arduino_response':
                     handleArduinoResponse(data.data);
-                    break;
-                case 'arduino_message':
-                    addSystemMessage(`Arduino: ${data.data.message}`);
-                    break;
-                case 'system_state_update':
-                    updateSystemState(data.data);
                     break;
             }
         }
@@ -1110,96 +1297,79 @@
         function sendWebSocketMessage(type, data = {}) {
             if (appState.ws && appState.ws.readyState === WebSocket.OPEN) {
                 appState.ws.send(JSON.stringify({ type, ...data }));
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(status) {
+            const statusDot = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+            const systemStatus = document.getElementById('systemStatus');
+
+            if (status === 'connected') {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+                systemStatus.textContent = 'Online';
             } else {
-                addSystemMessage('Not connected to server', 'error');
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Disconnected';
+                systemStatus.textContent = 'Offline';
             }
         }
 
-        // API Key Management
-        function saveApiKey() {
-            const apiKeyInput = document.getElementById('apiKeyInput');
-            const apiKey = apiKeyInput.value.trim();
-
-            if (!apiKey) {
-                addSystemMessage('Please enter a valid API key', 'error');
-                return;
-            }
-
-            // Validate API key format (basic check)
-            if (!apiKey.startsWith('AIza') || apiKey.length < 30) {
-                addSystemMessage('Invalid API key format. Google API keys start with "AIza"', 'error');
-                return;
-            }
-
-            // Save to localStorage
-            localStorage.setItem('googleApiKey', apiKey);
-
-            // Send to server
-            sendWebSocketMessage('set_api_key', { apiKey });
-
-            // Update UI
-            updateApiKeyStatus(true);
-            apiKeyInput.value = '';
-
-            addSystemMessage('✅ API key saved successfully', 'success');
+        // Format time
+        function formatTime(date) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        function updateApiKeyStatus(configured) {
-            const statusElement = document.getElementById('apiKeyStatus');
-            const statusText = document.getElementById('apiKeyStatusText');
-            const apiKeyStep = document.getElementById('apiKeyStep');
+        // Add message to chat
+        function addMessage(content, type = 'system') {
+            const chatContainer = document.getElementById('chatContainer');
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
 
-            appState.apiKeyConfigured = configured;
+            const now = new Date();
 
-            if (configured) {
-                statusElement.className = 'api-key-status configured';
-                statusText.textContent = '✅ API key configured';
-                apiKeyStep.classList.add('completed');
-                setSetupStep(1); // Move to Arduino setup
+            if (type === 'user' || type === 'ai') {
+                message.innerHTML = `
+                    <div class="message-avatar">${type === 'user' ? '👤' : '🤖'}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${type === 'user' ? 'You' : 'AI Assistant'}</span>
+                            <span class="message-time">${formatTime(now)}</span>
+                        </div>
+                        <div class="message-body">${type === 'ai' ? marked.parse(content) : content}</div>
+                    </div>
+                `;
             } else {
-                statusElement.className = 'api-key-status';
-                statusText.textContent = 'No API key configured';
-                apiKeyStep.classList.remove('completed');
+                message.innerHTML = `<div class="message-body">${content}</div>`;
             }
+
+            chatContainer.appendChild(message);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function loadSavedApiKey() {
-            const savedApiKey = localStorage.getItem('googleApiKey');
-            if (savedApiKey) {
-                // Send to server without showing in UI
-                sendWebSocketMessage('set_api_key', { apiKey: savedApiKey });
-                updateApiKeyStatus(true);
-            }
+        // Show/hide typing indicator
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').classList.add('show');
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function openApiKeyHelp() {
-            const helpModal = document.createElement('div');
-            helpModal.className = 'modal';
-            helpModal.innerHTML = `
-                <div class="modal-content">
-                    <h3>🔑 How to Get a Google Gemini API Key</h3>
-                    <ol>
-                        <li>Go to <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
-                        <li>Sign in with your Google account</li>
-                        <li>Click "Create API Key"</li>
-                        <li>Copy the generated API key</li>
-                        <li>Paste it in the field above</li>
-                    </ol>
-                    <p><strong>Note:</strong> The API key will be stored locally in your browser and sent securely to the server for AI processing.</p>
-                    <div style="margin-top: 1rem;">
-                        <button class="btn" onclick="closeModal(this)">Close</button>
-                        <a href="https://makersuite.google.com/app/apikey" target="_blank" class="btn btn-success">Open Google AI Studio</a>
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').classList.remove('show');
+        }
+
+        // Clear chat
+        function clearChat() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = `
+                <div class="message system">
+                    <div class="message-body">
+                        Chat cleared. How can I help you control your Arduino?
                     </div>
                 </div>
             `;
-            document.body.appendChild(helpModal);
-        }
-
-        function closeModal(button) {
-            const modal = button.closest('.modal');
-            if (modal) {
-                modal.remove();
-            }
         }
 
         // Setup Wizard Functions
@@ -1213,8 +1383,12 @@
             if (savedApiKey) {
                 document.getElementById('wizardApiKeyInput').value = savedApiKey;
                 appState.wizard.apiKey = savedApiKey;
-                updateWizardApiKeyStatus(true);
+                validateApiKey();
             }
+        }
+
+        function cancelSetup() {
+            document.getElementById('setupWizardModal').classList.add('hidden');
         }
 
         function updateWizardStep() {
@@ -1222,58 +1396,65 @@
 
             // Update progress indicators
             for (let i = 1; i <= appState.wizard.maxStep; i++) {
-                const stepDot = document.getElementById(`wizardStep${i}`);
-                const stepContent = document.getElementById(`wizardStepContent${i}`);
+                const step = document.getElementById(`step${i}`);
+                const content = document.getElementById(`stepContent${i}`);
+                const line = document.getElementById(`line${i - 1}`);
 
-                stepDot.classList.remove('active', 'completed');
-                stepContent.classList.remove('active');
+                step.classList.remove('active', 'completed');
+                content.classList.remove('active');
 
                 if (i < currentStep) {
-                    stepDot.classList.add('completed');
-                    stepDot.textContent = '✓';
+                    step.classList.add('completed');
+                    step.textContent = '✓';
+                    if (line) line.classList.add('completed');
                 } else if (i === currentStep) {
-                    stepDot.classList.add('active');
-                    stepDot.textContent = i;
-                    stepContent.classList.add('active');
+                    step.classList.add('active');
+                    content.classList.add('active');
                 } else {
-                    stepDot.textContent = i;
+                    step.textContent = i;
+                    if (line) line.classList.remove('completed');
                 }
             }
 
             // Update navigation buttons
-            document.getElementById('wizardPrevBtn').disabled = currentStep === 1;
-            document.getElementById('wizardNextBtn').style.display = currentStep === appState.wizard.maxStep ? 'none' : 'inline-block';
-            document.getElementById('wizardFinishBtn').style.display = currentStep === appState.wizard.maxStep ? 'inline-block' : 'none';
+            document.getElementById('prevBtn').disabled = currentStep === 1;
+            document.getElementById('nextBtn').classList.toggle('hidden', currentStep === appState.wizard.maxStep);
+            document.getElementById('finishBtn').classList.toggle('hidden', currentStep !== appState.wizard.maxStep);
 
-            // Update next button state based on step completion
-            updateWizardNextButton();
+            updateWizardButtons();
         }
 
-        function updateWizardNextButton() {
-            const nextBtn = document.getElementById('wizardNextBtn');
+        function updateWizardButtons() {
+            const nextBtn = document.getElementById('nextBtn');
+            const finishBtn = document.getElementById('finishBtn');
             const currentStep = appState.wizard.currentStep;
 
             switch (currentStep) {
-                case 1: // API Key
+                case 1:
                     nextBtn.disabled = !appState.wizard.apiKey;
                     break;
-                case 2: // Detection
+                case 2:
                     nextBtn.disabled = !appState.wizard.selectedBoard;
                     break;
-                case 3: // Connection
+                case 3:
                     nextBtn.disabled = !appState.arduinoConnected;
                     break;
-                case 4: // Firmware
+                case 4:
                     nextBtn.disabled = !appState.firmwareUploaded;
                     break;
-                case 5: // Test
-                    document.getElementById('wizardFinishBtn').disabled = !appState.setupComplete;
+                case 5:
+                    finishBtn.disabled = !appState.setupComplete;
                     break;
             }
         }
 
         function wizardNextStep() {
             if (appState.wizard.currentStep < appState.wizard.maxStep) {
+                // Validate current step before proceeding
+                if (appState.wizard.currentStep === 1) {
+                    validateApiKey();
+                }
+                
                 appState.wizard.currentStep++;
                 updateWizardStep();
             }
@@ -1286,35 +1467,21 @@
             }
         }
 
-        function cancelSetup() {
-            document.getElementById('setupWizardModal').classList.add('hidden');
-        }
-
-        function finishSetup() {
-            // Enable all controls
-            enableSystemControls();
-
-            // Update main UI
-            updateMainUIStatus();
-
-            // Close wizard
-            document.getElementById('setupWizardModal').classList.add('hidden');
-
-            addSystemMessage('🎉 Setup completed! Your Arduino AI control system is ready to use.', 'success');
-        }
-
-        // Wizard Step Functions
+        // Step 1: API Key
         function validateApiKey() {
-            const apiKeyInput = document.getElementById('wizardApiKeyInput');
-            const apiKey = apiKeyInput.value.trim();
+            const input = document.getElementById('wizardApiKeyInput');
+            const apiKey = input.value.trim();
+            const status = document.getElementById('apiKeyStatus');
 
             if (!apiKey) {
-                updateWizardApiKeyStatus(false, 'Please enter an API key');
+                status.className = 'status-message error mt-2';
+                status.innerHTML = 'Please enter an API key';
                 return;
             }
 
             if (!apiKey.startsWith('AIza') || apiKey.length < 30) {
-                updateWizardApiKeyStatus(false, 'Invalid API key format');
+                status.className = 'status-message error mt-2';
+                status.innerHTML = 'Invalid API key format';
                 return;
             }
 
@@ -1323,118 +1490,134 @@
             localStorage.setItem('googleApiKey', apiKey);
             sendWebSocketMessage('set_api_key', { apiKey });
 
-            updateWizardApiKeyStatus(true, 'API key validated successfully');
-            updateWizardNextButton();
+            status.className = 'status-message success mt-2';
+            status.innerHTML = '<span>✓</span><span>API key validated</span>';
+            appState.apiKeyConfigured = true;
+            updateWizardButtons();
         }
 
-        function updateWizardApiKeyStatus(valid, message) {
-            const statusElement = document.getElementById('wizardApiKeyStatus');
-
-            if (valid) {
-                statusElement.className = 'api-key-status configured';
-                statusElement.textContent = '✅ ' + (message || 'API key configured');
-                appState.apiKeyConfigured = true;
-            } else {
-                statusElement.className = 'api-key-status error';
-                statusElement.textContent = '❌ ' + (message || 'Invalid API key');
-                appState.apiKeyConfigured = false;
+        document.getElementById('wizardApiKeyInput').addEventListener('input', function() {
+            if (this.value.trim()) {
+                validateApiKey();
             }
+        });
+
+        function openApiKeyHelp() {
+            window.open('https://makersuite.google.com/app/apikey', '_blank');
         }
 
+        // Step 2: Detect Arduino
         function wizardDetectArduino() {
-            const detectBtn = document.getElementById('wizardDetectBtn');
-            const statusElement = document.getElementById('wizardDetectionStatus');
+            const btn = document.getElementById('detectBtn');
+            const status = document.getElementById('detectStatus');
 
-            detectBtn.disabled = true;
-            detectBtn.textContent = '🔍 Detecting...';
-            statusElement.textContent = 'Scanning for Arduino boards...';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Detecting...';
+            status.className = 'status-message info mt-2';
+            status.innerHTML = 'Scanning for Arduino boards...';
 
             sendWebSocketMessage('detect_arduino');
-
-            setTimeout(() => {
-                detectBtn.disabled = false;
-                detectBtn.textContent = '🔍 Detect Arduino Boards';
-            }, 3000);
         }
 
-        function displayWizardArduinoBoards(boards) {
-            const arduinoList = document.getElementById('wizardArduinoList');
-            const statusElement = document.getElementById('wizardDetectionStatus');
+        function displayArduinoBoards(boards) {
+            const list = document.getElementById('deviceList');
+            const status = document.getElementById('detectStatus');
+            const btn = document.getElementById('detectBtn');
 
-            if (boards.length === 0) {
-                statusElement.textContent = '❌ No Arduino boards detected. Please check your connection.';
+            btn.disabled = false;
+            btn.textContent = 'Detect Arduino';
+
+            if (!boards || boards.length === 0) {
+                status.className = 'status-message error mt-2';
+                status.innerHTML = 'No Arduino boards found. Check your connection.';
                 return;
             }
 
-            arduinoList.innerHTML = '';
-            arduinoList.classList.remove('hidden');
-            statusElement.textContent = `✅ Found ${boards.length} Arduino board(s). Select one to continue.`;
+            list.innerHTML = '';
+            list.classList.remove('hidden');
 
-            boards.forEach((board, index) => {
+            boards.forEach(board => {
                 const item = document.createElement('div');
-                item.className = 'arduino-item';
-                item.onclick = () => selectWizardArduino(board, item);
-
+                item.className = 'device-item';
+                item.onclick = () => selectArduino(board, item);
                 item.innerHTML = `
-                    <div class="arduino-info">${board.boardType}</div>
-                    <div class="arduino-details">${board.path} - ${board.manufacturer}</div>
+                    <div class="device-info">
+                        <div class="device-name">${board.boardType}</div>
+                        <div class="device-details">${board.path} - ${board.manufacturer}</div>
+                    </div>
+                    <span>→</span>
                 `;
-
-                arduinoList.appendChild(item);
-
-                if (index === 0) {
-                    selectWizardArduino(board, item);
-                }
+                list.appendChild(item);
             });
+
+            status.className = 'status-message success mt-2';
+            status.innerHTML = `<span>✓</span><span>Found ${boards.length} device(s)</span>`;
         }
 
-        function selectWizardArduino(board, element) {
-            // Remove previous selection
-            document.querySelectorAll('#wizardArduinoList .arduino-item').forEach(item => {
+        function selectArduino(board, element) {
+            // Update selection
+            document.querySelectorAll('.device-item').forEach(item => {
                 item.classList.remove('selected');
             });
-
-            // Select current
             element.classList.add('selected');
-            appState.wizard.selectedBoard = board;
 
+            appState.wizard.selectedBoard = board;
+            
             // Update step 3 display
-            document.getElementById('wizardSelectedBoard').innerHTML = `
+            document.getElementById('selectedDevice').innerHTML = `
                 <strong>${board.boardType}</strong><br>
                 <small>${board.path} - ${board.manufacturer}</small>
             `;
-
-            document.getElementById('wizardConnectBtn').disabled = false;
-            updateWizardNextButton();
+            
+            document.getElementById('connectBtn').disabled = false;
+            updateWizardButtons();
         }
 
+        // Step 3: Connect
         function wizardConnectArduino() {
             if (!appState.wizard.selectedBoard) return;
 
-            const connectBtn = document.getElementById('wizardConnectBtn');
-            const statusElement = document.getElementById('wizardConnectionStatus');
+            const btn = document.getElementById('connectBtn');
+            const status = document.getElementById('connectStatus');
 
-            connectBtn.disabled = true;
-            connectBtn.textContent = '🔌 Connecting...';
-            statusElement.textContent = 'Establishing connection...';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Connecting...';
+            status.className = 'status-message info mt-2';
+            status.innerHTML = 'Establishing connection...';
 
-            sendWebSocketMessage('connect_arduino', { port: appState.wizard.selectedBoard.path });
+            sendWebSocketMessage('connect_arduino', { 
+                port: appState.wizard.selectedBoard.path 
+            });
         }
 
+        function onArduinoConnected(data) {
+            const btn = document.getElementById('connectBtn');
+            const status = document.getElementById('connectStatus');
+
+            btn.disabled = false;
+            btn.textContent = 'Connected';
+            status.className = 'status-message success mt-2';
+            status.innerHTML = '<span>✓</span><span>Connected successfully</span>';
+
+            appState.arduinoConnected = true;
+            document.getElementById('uploadBtn').disabled = false;
+            updateWizardButtons();
+        }
+
+        function onArduinoDisconnected() {
+            appState.arduinoConnected = false;
+            updateWizardButtons();
+        }
+
+        // Step 4: Upload Firmware
         function wizardUploadFirmware() {
-            if (!appState.wizard.selectedBoard) return;
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
 
-            const uploadBtn = document.getElementById('wizardUploadBtn');
-            const progressBar = document.getElementById('wizardUploadProgress');
-            const logContainer = document.getElementById('wizardUploadLog');
-            const statusElement = document.getElementById('wizardUploadStatus');
-
-            uploadBtn.disabled = true;
-            uploadBtn.textContent = '📤 Uploading...';
-            progressBar.classList.remove('hidden');
-            logContainer.classList.remove('hidden');
-            logContainer.innerHTML = '';
-            statusElement.textContent = 'Uploading firmware to Arduino...';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Uploading...';
+            status.className = 'status-message info mt-2';
+            status.innerHTML = 'Uploading firmware to Arduino...';
 
             sendWebSocketMessage('upload_firmware', {
                 port: appState.wizard.selectedBoard.path,
@@ -1442,231 +1625,91 @@
             });
         }
 
-        function wizardTestSystem() {
-            const testBtn = document.getElementById('wizardTestBtn');
-            const resultsElement = document.getElementById('wizardTestResults');
-
-            testBtn.disabled = true;
-            testBtn.textContent = '🧪 Testing...';
-            resultsElement.textContent = 'Testing Arduino communication...';
-
-            sendWebSocketMessage('arduino_command', {
-                command: 'PING',
-                params: {}
-            });
-
-            // Also test LED
-            setTimeout(() => {
-                sendWebSocketMessage('arduino_command', {
-                    command: 'LED_ON',
-                    params: {}
-                });
-
-                setTimeout(() => {
-                    sendWebSocketMessage('arduino_command', {
-                        command: 'LED_OFF',
-                        params: {}
-                    });
-
-                    // Mark setup as complete
-                    appState.setupComplete = true;
-                    document.getElementById('wizardSetupComplete').classList.remove('hidden');
-                    document.getElementById('wizardFinishBtn').disabled = false;
-                    resultsElement.textContent = '✅ All tests passed! System is ready.';
-                }, 1000);
-            }, 1000);
+        function updateUploadProgress(data) {
+            const status = document.getElementById('uploadStatus');
+            status.innerHTML = data.message;
         }
 
-        // System Control Functions
-        function enableSystemControls() {
-            // Enable quick controls
-            const quickControlsPanel = document.getElementById('quickControlsPanel');
-            quickControlsPanel.classList.remove('disabled');
-            quickControlsPanel.querySelectorAll('.control-btn').forEach(btn => {
-                btn.classList.remove('disabled');
-            });
+        function onUploadSuccess() {
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
 
-            // Enable pin status
-            const pinStatusPanel = document.getElementById('pinStatusPanel');
-            pinStatusPanel.classList.remove('disabled');
+            btn.disabled = false;
+            btn.textContent = 'Upload Complete';
+            status.className = 'status-message success mt-2';
+            status.innerHTML = '<span>✓</span><span>Firmware uploaded successfully</span>';
 
-            // Enable chat interface
+            appState.firmwareUploaded = true;
+            document.getElementById('testBtn').disabled = false;
+            updateWizardButtons();
+        }
+
+        function onUploadError(data) {
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
+
+            btn.disabled = false;
+            btn.textContent = 'Upload Firmware';
+            status.className = 'status-message error mt-2';
+            status.innerHTML = `Upload failed: ${data.message}`;
+        }
+
+        // Step 5: Test
+        function wizardTestSystem() {
+            const btn = document.getElementById('testBtn');
+            const status = document.getElementById('testStatus');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Testing...';
+            status.className = 'status-message info mt-2';
+            status.innerHTML = 'Running system test...';
+
+            sendWebSocketMessage('test_system');
+        }
+
+        function onTestComplete(data) {
+            const btn = document.getElementById('testBtn');
+            const status = document.getElementById('testStatus');
+
+            btn.disabled = false;
+            btn.textContent = 'Test Complete';
+            
+            if (data.success) {
+                status.className = 'status-message success mt-2';
+                status.innerHTML = '<span>✓</span><span>All tests passed</span>';
+                document.getElementById('setupSuccessMessage').classList.remove('hidden');
+                appState.setupComplete = true;
+            } else {
+                status.className = 'status-message error mt-2';
+                status.innerHTML = `Test failed: ${data.message}`;
+            }
+
+            updateWizardButtons();
+        }
+
+        function finishSetup() {
+            // Enable UI elements
+            document.getElementById('quickActionsSection').classList.remove('disabled');
+            document.getElementById('pinStatusSection').classList.remove('disabled');
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendButton').disabled = false;
-        }
-
-        function updateMainUIStatus() {
-            // Update connection status
-            document.getElementById('connectionText').textContent = 'Connected';
-            document.getElementById('connectionStatus').className = 'status-dot connected';
-            document.getElementById('systemStatus').textContent = 'Ready';
-
-            // Update setup status
-            document.getElementById('setupStatus').classList.remove('hidden');
+            
+            // Update setup card
             document.getElementById('startSetupBtn').classList.add('hidden');
-            document.getElementById('reconfigureBtn').classList.remove('hidden');
-
-            // Update status icons
-            document.getElementById('apiKeyIcon').textContent = '✅';
-            document.getElementById('arduinoIcon').textContent = '✅';
-            document.getElementById('firmwareIcon').textContent = '✅';
+            document.getElementById('setupComplete').classList.remove('hidden');
+            
+            // Close modal
+            cancelSetup();
+            
+            // Show success message
+            addMessage('🎉 Setup completed! Your Arduino is ready for AI control.');
         }
 
-        // Update existing WebSocket message handler to work with wizard
-        function handleWebSocketMessage(data) {
-            switch (data.type) {
-                case 'system_state':
-                    updateSystemState(data.data);
-                    break;
-                case 'arduino_boards':
-                    if (document.getElementById('setupWizardModal').classList.contains('hidden')) {
-                        displayArduinoBoards(data.data);
-                    } else {
-                        displayWizardArduinoBoards(data.data);
-                    }
-                    break;
-                case 'arduino_connected':
-                    appState.arduinoConnected = true;
-                    if (appState.wizard.currentStep === 3) {
-                        document.getElementById('wizardConnectionStatus').textContent = '✅ Connected successfully!';
-                        document.getElementById('wizardConnectBtn').textContent = '🔌 Connected';
-                        document.getElementById('wizardUploadBtn').disabled = false;
-                        updateWizardNextButton();
-                    }
-                    onArduinoConnected(data.data);
-                    break;
-                case 'arduino_disconnected':
-                    appState.arduinoConnected = false;
-                    onArduinoDisconnected();
-                    break;
-                case 'upload_progress':
-                    if (appState.wizard.currentStep === 4) {
-                        addWizardUploadLog(data.data.message);
-                    }
-                    updateUploadProgress(data.data.message);
-                    break;
-                case 'upload_success':
-                    appState.firmwareUploaded = true;
-                    if (appState.wizard.currentStep === 4) {
-                        document.getElementById('wizardUploadStatus').textContent = '✅ Firmware uploaded successfully!';
-                        document.getElementById('wizardUploadBtn').textContent = '📤 Upload Complete';
-                        document.getElementById('wizardTestBtn').disabled = false;
-                        updateWizardNextButton();
-                    }
-                    break;
-                case 'upload_error':
-                    if (appState.wizard.currentStep === 4) {
-                        addWizardUploadLog(data.data.message, 'error');
-                        document.getElementById('wizardUploadStatus').textContent = '❌ Upload failed. Please try again.';
-                        document.getElementById('wizardUploadBtn').disabled = false;
-                        document.getElementById('wizardUploadBtn').textContent = '📤 Upload Firmware';
-                    }
-                    addUploadLog(data.data.message, 'error');
-                    break;
-                case 'firmware_required':
-                    setSetupStep(3);
-                    break;
-                case 'setup_complete':
-                    onSetupComplete();
-                    break;
-                case 'arduino_response':
-                    handleArduinoResponse(data.data);
-                    break;
-                case 'arduino_message':
-                    addSystemMessage(`Arduino: ${data.data.message}`);
-                    break;
-                case 'system_state_update':
-                    updateSystemState(data.data);
-                    break;
-                case 'api_key_status':
-                    if (data.data.configured) {
-                        appState.apiKeyConfigured = true;
-                        if (appState.wizard.currentStep === 1) {
-                            updateWizardApiKeyStatus(true, data.data.message);
-                        }
-                    }
-                    break;
-            }
-        }
-
-        function addWizardUploadLog(message, type = 'info') {
-            const uploadLog = document.getElementById('wizardUploadLog');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
-            uploadLog.appendChild(entry);
-            uploadLog.scrollTop = uploadLog.scrollHeight;
-        }
-
-        // Update system state
-        function updateSystemState(state) {
-            appState.systemState = state;
-            updateConnectionStatus(state.arduino);
-            updatePinStatus(state.hardware.pins);
-            updateSetupProgress(state.setup);
-        }
-
-        // Update connection status
-        function updateConnectionStatus(arduino) {
-            const statusDot = document.getElementById('connectionStatus');
-            const statusText = document.getElementById('connectionText');
-            const firmwareStatus = document.getElementById('firmwareStatus');
-
-            if (arduino.connected) {
-                statusDot.className = 'status-dot connected';
-                statusText.textContent = 'Connected';
-                firmwareStatus.textContent = arduino.firmwareUploaded ? '✅ Firmware Ready' : '⚠️ Firmware Required';
-            } else {
-                statusDot.className = 'status-dot';
-                statusText.textContent = 'Disconnected';
-                firmwareStatus.textContent = 'No Firmware';
-            }
-        }
-
-        // Legacy function for compatibility (now redirects to wizard)
-        function displayArduinoBoards(boards) {
-            // This is called when not in wizard mode - shouldn't happen in new design
-            console.log('Legacy displayArduinoBoards called with:', boards);
-        }
-
-        // Legacy functions for compatibility
-        function onArduinoConnected(arduino) {
-            addSystemMessage(`✅ Connected to Arduino on ${arduino.port}`, 'success');
-        }
-
-        function onArduinoDisconnected() {
-            addSystemMessage('❌ Arduino disconnected', 'error');
-        }
-
-        function updateUploadProgress(message) {
-            // Legacy function - wizard handles its own progress
-            console.log('Upload progress:', message);
-        }
-
-        function addUploadLog(message, type = 'info') {
-            // Legacy function - wizard handles its own logging
-            console.log('Upload log:', type, message);
-        }
-
-        // Legacy functions for compatibility
-        function setSetupStep(step) {
-            console.log('Legacy setSetupStep called with:', step);
-        }
-
-        function updateSetupProgress(setup) {
-            console.log('Legacy updateSetupProgress called with:', setup);
-        }
-
-        // Quick command execution
-        async function quickCommand(command) {
+        // Quick Commands
+        function quickCommand(command) {
             if (!appState.setupComplete) {
-                addSystemMessage('Please complete setup first', 'error');
+                addMessage('Please complete setup first', 'system');
                 startSetupWizard();
-                return;
-            }
-
-            if (!appState.systemState?.arduino?.connected) {
-                addSystemMessage('Arduino not connected', 'error');
                 return;
             }
 
@@ -1679,86 +1722,63 @@
 
             if (commands[command]) {
                 sendWebSocketMessage('arduino_command', commands[command]);
-                addSystemMessage(`Executing: ${command}`);
+                addMessage(`Executing: ${command}`, 'system');
             }
         }
 
         // Handle Arduino responses
         function handleArduinoResponse(response) {
-            if (response.type === 'status') {
-                addSystemMessage('✅ Arduino connection test successful', 'success');
+            console.log('Arduino response:', response);
+        }
+
+        // Update system state
+        function updateSystemState(state) {
+            appState.systemState = state;
+            
+            // Update pin status
+            if (state.hardware && state.hardware.pins) {
+                updatePinStatus(state.hardware.pins);
+            }
+            
+            // Check if setup is complete
+            if (state.setup && state.setup.apiKeyConfigured && 
+                state.arduino && state.arduino.connected && 
+                state.arduino.firmwareUploaded) {
+                appState.setupComplete = true;
+                document.getElementById('quickActionsSection').classList.remove('disabled');
+                document.getElementById('pinStatusSection').classList.remove('disabled');
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('startSetupBtn').classList.add('hidden');
+                document.getElementById('setupComplete').classList.remove('hidden');
             }
         }
 
         // Update pin status display
         function updatePinStatus(pins) {
-            const pinStatus = document.getElementById('pinStatus');
-            pinStatus.innerHTML = '';
+            const container = document.getElementById('pinStatus');
+            container.innerHTML = '';
 
             for (let i = 0; i < 14; i++) {
-                const pinDiv = document.createElement('div');
-                pinDiv.className = 'pin-item';
-
-                if (pins[i]) {
-                    const pin = pins[i];
-                    if (pin.mode === 'OUTPUT') {
-                        pinDiv.classList.add('output');
-                        if (pin.digitalValue === 1) pinDiv.classList.add('high');
-                    } else if (pin.mode === 'INPUT') {
-                        pinDiv.classList.add('input');
-                    }
-                    pinDiv.innerHTML = `<strong>D${i}</strong><br>${pin.mode || 'INPUT'}<br>${pin.digitalValue !== undefined ? (pin.digitalValue ? 'HIGH' : 'LOW') : ''}`;
-                } else {
-                    pinDiv.innerHTML = `<strong>D${i}</strong><br>INPUT<br>`;
+                const pin = pins[i] || { mode: 'INPUT', digitalValue: 0 };
+                const item = document.createElement('div');
+                item.className = 'pin-item';
+                
+                if (pin.mode === 'OUTPUT') {
+                    item.classList.add('output');
+                    if (pin.digitalValue === 1) item.classList.add('high');
+                } else if (pin.mode === 'INPUT') {
+                    item.classList.add('input');
                 }
-
-                pinStatus.appendChild(pinDiv);
+                
+                item.innerHTML = `
+                    <span class="pin-label">D${i}</span>
+                    <span>${pin.mode}</span>
+                    ${pin.digitalValue !== undefined ? `<span>${pin.digitalValue ? 'HIGH' : 'LOW'}</span>` : ''}
+                `;
+                
+                container.appendChild(item);
             }
-        }
-
-        // Message handling functions
-        function addMessage(content, isUser = false, isSystem = false) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('fade-in');
-
-            if (isSystem) {
-                messageDiv.className = 'system-message fade-in';
-                messageDiv.textContent = content;
-            } else {
-                messageDiv.className = isUser ? 'message user-message fade-in' : 'message ai-message fade-in';
-                if (isUser) {
-                    messageDiv.textContent = content;
-                } else {
-                    // Render markdown for AI messages
-                    messageDiv.innerHTML = marked.parse(content);
-                }
-            }
-
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function addSystemMessage(content, type = 'info') {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `system-message fade-in`;
-
-            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-            messageDiv.textContent = `${icon} ${content}`;
-
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function showTypingIndicator() {
-            document.getElementById('typingIndicator').classList.add('show');
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function hideTypingIndicator() {
-            document.getElementById('typingIndicator').classList.remove('show');
         }
 
         // Send chat message
@@ -1771,19 +1791,7 @@
             if (!message) return;
 
             if (!appState.setupComplete) {
-                addSystemMessage('Please complete setup first', 'error');
-                startSetupWizard();
-                return;
-            }
-
-            if (!appState.apiKeyConfigured) {
-                addSystemMessage('Please configure your Google API key first', 'error');
-                startSetupWizard();
-                return;
-            }
-
-            if (!appState.systemState?.arduino?.connected) {
-                addSystemMessage('Please connect your Arduino first', 'error');
+                addMessage('Please complete setup first', 'system');
                 startSetupWizard();
                 return;
             }
@@ -1792,8 +1800,11 @@
             document.getElementById('sendButton').disabled = true;
 
             // Add user message
-            addMessage(message, true);
+            addMessage(message, 'user');
             input.value = '';
+            
+            // Auto-resize input
+            input.style.height = 'auto';
 
             // Show typing indicator
             showTypingIndicator();
@@ -1811,22 +1822,22 @@
 
                 if (response.ok) {
                     // Add AI response
-                    addMessage(data.response);
+                    addMessage(data.response, 'ai');
 
-                    // Show function calls
+                    // Show function calls if any
                     if (data.functionsCalled && data.functionsCalled.length > 0) {
                         for (const func of data.functionsCalled) {
                             const funcDiv = document.createElement('div');
-                            funcDiv.className = 'function-call fade-in';
-                            funcDiv.textContent = `🔧 Executed: ${func.name}(${JSON.stringify(func.args)})`;
+                            funcDiv.className = 'function-call';
+                            funcDiv.textContent = `Executed: ${func.name}(${JSON.stringify(func.args)})`;
                             document.getElementById('chatContainer').appendChild(funcDiv);
                         }
                     }
                 } else {
-                    addSystemMessage(data.error || 'Failed to send message', 'error');
+                    addMessage(`Error: ${data.error || 'Failed to send message'}`, 'system');
                 }
             } catch (error) {
-                addSystemMessage('Connection failed', 'error');
+                addMessage('Connection failed', 'system');
             } finally {
                 hideTypingIndicator();
                 appState.isProcessing = false;
@@ -1835,53 +1846,38 @@
             }
         }
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !appState.isProcessing) {
+        // Handle input keypress
+        document.getElementById('messageInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
-        }
+        });
 
-        // Setup complete callback
-        function onSetupComplete() {
-            setSetupStep(4);
-            enableChatInterface();
-            addSystemMessage('🎉 Setup complete! Your Arduino is ready for AI control.', 'success');
-        }
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
 
         // Initialize application
         function initApp() {
-            console.log('🚀 Initializing Arduino AI Control Center');
+            console.log('Initializing Arduino AI Control System');
             initWebSocket();
 
-            // Check if setup is already complete
-            checkExistingSetup();
+            // Check for saved API key
+            const savedApiKey = localStorage.getItem('googleApiKey');
+            if (savedApiKey) {
+                sendWebSocketMessage('set_api_key', { apiKey: savedApiKey });
+            }
 
-            // Request initial system state
+            // Request system state
             setTimeout(() => {
                 sendWebSocketMessage('get_system_state');
             }, 1000);
         }
 
-        function checkExistingSetup() {
-            const savedApiKey = localStorage.getItem('googleApiKey');
-
-            if (savedApiKey) {
-                appState.apiKeyConfigured = true;
-                sendWebSocketMessage('set_api_key', { apiKey: savedApiKey });
-
-                // Check if we have a complete setup
-                // This will be updated when we receive system state
-                setTimeout(() => {
-                    if (appState.systemState?.arduino?.connected && appState.systemState?.arduino?.firmwareUploaded) {
-                        appState.setupComplete = true;
-                        enableSystemControls();
-                        updateMainUIStatus();
-                    }
-                }, 2000);
-            }
-        }
-
-        // Start the application when page loads
+        // Start the application
         window.addEventListener('load', initApp);
     </script>
 </body>
