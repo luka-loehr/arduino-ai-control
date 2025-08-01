@@ -1,0 +1,19 @@
+{
+  "name": "arduino-ai",
+  "version": "1.0.0",
+  "description": "AI-powered Arduino control system using natural language commands",
+  "main": "arduino-control-app/server.js",
+  "scripts": {
+    "dev": "cd arduino-control-app && npm start",
+    "install": "cd arduino-control-app && npm install",
+    "start": "cd arduino-control-app && npm start",
+    "test-setup": "node test-setup.js"
+  },
+  "keywords": ["arduino", "ai", "iot", "gemini", "automation", "serial"],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
