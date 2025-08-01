@@ -35,8 +35,8 @@ An intelligent Arduino control system that allows you to control Arduino devices
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd arduino-ai
+   git clone https://github.com/luka-loehr/arduino-ai-control.git
+   cd arduino-ai-control
    ```
 
 2. **Install dependencies**:
