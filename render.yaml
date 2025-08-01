@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: arduino-ai-cloud
+    env: node
+    plan: free
+    buildCommand: cd cloud-interface && npm install
+    startCommand: cd cloud-interface && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main

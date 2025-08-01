@@ -69,3 +69,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Build outputs
+dist/
+build/
+arduino-bridge/dist/
+
+# Package files
+*.tgz
+*.tar.gz
